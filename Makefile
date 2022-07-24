@@ -17,6 +17,7 @@ cover:
 .PHONY: bench
 bench:
 	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" ./simulation
+	rm simulation.test
 
 .PHONY: profile
 profile: bench
