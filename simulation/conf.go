@@ -3,6 +3,7 @@ package simulation
 type Conf struct {
 	Debug               bool
 	Seed                int64
+	GoRoutines          int
 	ScreenWidth         int
 	ScreenHeight        int
 	FlockSize           int
@@ -20,6 +21,7 @@ func DefaultConf() Conf {
 	return Conf{
 		Debug:               true,
 		Seed:                0,
+		GoRoutines:          10,
 		ScreenWidth:         1280,
 		ScreenHeight:        720,
 		FlockSize:           500,
