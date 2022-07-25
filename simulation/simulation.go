@@ -27,6 +27,9 @@ type Simulation struct {
 	boidImg  *ebiten.Image
 	imgOP    *ebiten.DrawImageOptions
 	flock    *Flock
+	maxTPS   int
+	tps      int
+	tick     int
 }
 
 func New(conf Conf) (*Simulation, error) {
@@ -54,6 +57,8 @@ func New(conf Conf) (*Simulation, error) {
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
 	s.boidImg.DrawImage(img, s.imgOP)
 	s.flock = NewFlock(conf)
+	s.maxTPS = ebiten.MaxTPS()
+	s.tps = s.maxTPS / 10 // 10 times per second
 
 	s.Log("Assets ready")
 	return s, nil
@@ -124,6 +129,14 @@ func (s *Simulation) Update() error {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
-	s.flock.Step()
+
+	s.tick += 1
+	if s.tick >= s.maxTPS {
+		s.tick = 0
+	}
+	if s.tick%s.tps == 0 {
+		s.flock.Step(true)
+	}
+	s.flock.Step(false)
 	return nil
 }
