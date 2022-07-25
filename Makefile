@@ -1,6 +1,7 @@
 COVER=.stats/cover
 COVER_HTML=.stats/cover.html
 CPU=.stats/cpu
+MEM=.stats/mem
 
 .PHONY: run
 run:
@@ -16,7 +17,7 @@ cover:
 
 .PHONY: bench
 bench:
-	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" ./simulation
+	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./simulation
 	rm simulation.test
 
 .PHONY: profile

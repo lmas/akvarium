@@ -16,7 +16,7 @@ func New(x, y float64) V {
 }
 
 func (v V) String() string {
-	return fmt.Sprintf("(%v, %v)", v.X, v.Y)
+	return fmt.Sprintf("(%+0.3f, %+0.3f)", v.X, v.Y)
 }
 
 func (v V) Angle() float64 {
@@ -26,6 +26,8 @@ func (v V) Angle() float64 {
 }
 
 func (v V) Length() float64 {
+	// A.K.A. Magnitude
+	//
 	// Using math.Pow instead of plain x*x ensures consistent
 	// and better rounding behaviours, but is waaay slower!
 	//return math.Sqrt(math.Pow(v.X, 2) + math.Pow(v.Y, 2))
@@ -37,17 +39,9 @@ func (v V) Distance(other V) float64 {
 	return math.Sqrt(x*x + y*y)
 }
 
-//func (v V) Equal(x, y float64) bool {
-//return v.X == x && v.Y == x
-//}
-
-//func (v V) Equalv(other V) bool {
-//return v.X == other.X && v.Y == other.Y
-//}
-
-//func (v V) Less(x, y float64) bool {
-//return v.X < x && v.Y < y
-//}
+func (v V) Within(min, max V) bool {
+	return v.X >= min.X && v.Y >= min.Y && v.X <= max.X && v.Y <= max.Y
+}
 
 func (v V) Zero() V {
 	v.X, v.Y = 0, 0

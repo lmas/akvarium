@@ -8,7 +8,7 @@ import (
 
 var (
 	flagDebug     = flag.Bool("debug", false, "Toggle debug info")
-	flagInitSteps = flag.Int("initsteps", 3000, "Run initial steps to prime the simulation")
+	flagInitSteps = flag.Int("initsteps", 0, "Run initial steps to prime the simulation")
 )
 
 func main() {

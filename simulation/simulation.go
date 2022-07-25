@@ -104,20 +104,29 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 		s.imgOP.GeoM.Rotate(b.Vel.Angle())
 		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
 		if s.Conf.Debug && b == s.flock.Boids[0] {
-			vr := float64(s.Conf.VisionRadious)
+			vr := float64(neighbourRange)
 			ebitenutil.DrawRect(screen, b.Pos.X-vr, b.Pos.Y-vr, vr*2, vr*2, colGreen)
-			sr := float64(s.Conf.SeparationRadious)
+			sr := float64(separationRange)
 			ebitenutil.DrawRect(screen, b.Pos.X-sr, b.Pos.Y-sr, sr*2, sr*2, colRed)
 		}
 		screen.DrawImage(s.boidImg, s.imgOP)
 	}
 
 	if s.Conf.Debug {
-		msg := fmt.Sprintf("TPS: %0.f FPS: %0.f Leader: %0.1f, %0.1f, %0.1f",
+		t := leaderStats.Target.Sub(targetRange / 2)
+		ebitenutil.DrawRect(screen, t.X, t.Y, targetRange, targetRange, colRed)
+		msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n"+
+			"coh: %s  sep: %s  ali: %s  tar: %s",
 			ebiten.CurrentTPS(),
 			ebiten.CurrentFPS(),
-			s.flock.Boids[0].Vel.X, s.flock.Boids[0].Vel.Y,
-			s.flock.Boids[0].Vel.Angle(),
+			leaderStats.Target.X, leaderStats.Target.Y,
+			leaderStats.Pos.X, leaderStats.Pos.Y,
+			leaderStats.Vel,
+			leaderStats.Vel.Angle(),
+			leaderStats.Cohesion,
+			leaderStats.Separation,
+			leaderStats.Alignment,
+			leaderStats.Targeting,
 		)
 		ebitenutil.DebugPrint(screen, msg)
 	}
