@@ -24,6 +24,14 @@ bench:
 profile: bench
 	go tool pprof -top "${CPU}"
 
+.PHONY: showcpu
+showcpu:
+	go tool pprof -http localhost:8000 "${CPU}"
+
+.PHONY: showmem
+showmem:
+	go tool pprof -http localhost:8000 "${MEM}"
+
 .PHONY: lint
 lint: govet gosec
 
