@@ -31,10 +31,6 @@ func TestSimpleOperations(t *testing.T) {
 		f := math.Sqrt(math.Pow(3.3, 2) + math.Pow(3.3, 2))
 		assertFloat(t, v.Add(3.3).Length(), f)
 	})
-	t.Run("get distance", func(t *testing.T) {
-		f := math.Sqrt(-3*-3 + -3*-3)
-		assertFloat(t, v.Distance(New(3, 3)), f)
-	})
 	t.Run("do round", func(t *testing.T) {
 		assertVector(t, v.Add(math.Sqrt(3.3*3.3)).Round(), 3.3, 3.3)
 	})
