@@ -101,7 +101,7 @@ type stats struct {
 
 var leaderStats = stats{}
 
-const neighbourRange float64 = 75
+const neighbourRange float64 = 50
 
 func (f *Flock) stepBoid(b *Boid, target vector.V) {
 	if f.update {
@@ -148,12 +148,12 @@ const separationFactor = 0.3
 
 func separation(n *Boid, diff vector.V, dist float64) vector.V {
 	if dist < separationRange {
-		return diff.Mul((1 / dist) * separationFactor)
+		return diff.Div(dist / separationFactor)
 	}
 	return vector.New(0, 0)
 }
 
-const alignmentFactor float64 = 0.1
+const alignmentFactor float64 = 0.05
 
 func alignment(b *Boid, ali vector.V, num float64) vector.V {
 	return ali.Div(num).Subv(b.Vel).Mul(alignmentFactor)
@@ -167,7 +167,7 @@ func centerTarget(b *Boid, target vector.V) vector.V {
 	diff := target.Subv(b.Pos)
 	dist := diff.Length()
 	if dist < targetRange {
-		return diff.Mul((1 / dist) * -targetRepelFactor)
+		return diff.Div(dist / -targetRepelFactor)
 	}
 	return diff.Mul(targetAttractFactor)
 }
