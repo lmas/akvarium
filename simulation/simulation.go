@@ -17,8 +17,7 @@ import (
 var (
 	colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
 	colRed   = color.RGBA{0xff, 0x0, 0x0, 0x88}
-
-	errQuit = errors.New("quit")
+	errQuit  = errors.New("quit")
 )
 
 type Simulation struct {
@@ -26,7 +25,7 @@ type Simulation struct {
 	boidSize [2]float64
 	boidImg  *ebiten.Image
 	imgOP    *ebiten.DrawImageOptions
-	flock    *Flock
+	swarm    *Swarm
 	maxTPS   int
 	tps      int
 	tick     int
@@ -52,13 +51,12 @@ func New(conf Conf) (*Simulation, error) {
 	s.imgOP.GeoM.Scale(conf.ScreenScale, conf.ScreenScale)
 	img := ebiten.NewImageFromImage(i)
 	w, h := img.Size()
-
 	s.boidSize[0], s.boidSize[1] = float64(w)*conf.ScreenScale, float64(h)*conf.ScreenScale
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
 	s.boidImg.DrawImage(img, s.imgOP)
-	s.flock = NewFlock(conf)
+
 	s.maxTPS = ebiten.MaxTPS()
-	s.tps = s.maxTPS / 10 // 10 times per second
+	s.swarm = NewSwarm(conf)
 
 	s.Log("Assets ready")
 	return s, nil
@@ -72,7 +70,7 @@ func (s *Simulation) Log(msg string, args ...interface{}) {
 
 func (s *Simulation) Init(simulationSteps int) {
 	s.Log("Priming simulation..")
-	s.flock.Init(simulationSteps)
+	s.swarm.Init(simulationSteps)
 	s.Log("Simulation ready")
 }
 
@@ -97,40 +95,7 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 	return s.Conf.ScreenWidth, s.Conf.ScreenHeight
 }
 
-func (s *Simulation) Draw(screen *ebiten.Image) {
-	for _, b := range s.flock.Boids {
-		s.imgOP.GeoM.Reset()
-		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
-		s.imgOP.GeoM.Rotate(b.Vel.Angle())
-		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
-		if s.Conf.Debug && b == s.flock.Boids[0] {
-			vr := float64(neighbourRange)
-			ebitenutil.DrawRect(screen, b.Pos.X-vr, b.Pos.Y-vr, vr*2, vr*2, colGreen)
-			sr := float64(separationRange)
-			ebitenutil.DrawRect(screen, b.Pos.X-sr, b.Pos.Y-sr, sr*2, sr*2, colRed)
-		}
-		screen.DrawImage(s.boidImg, s.imgOP)
-	}
-
-	if s.Conf.Debug {
-		t := leaderStats.Target.Sub(targetRange / 2)
-		ebitenutil.DrawRect(screen, t.X, t.Y, targetRange, targetRange, colRed)
-		msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n"+
-			"coh: %s  sep: %s  ali: %s  tar: %s",
-			ebiten.CurrentTPS(),
-			ebiten.CurrentFPS(),
-			leaderStats.Target.X, leaderStats.Target.Y,
-			leaderStats.Pos.X, leaderStats.Pos.Y,
-			leaderStats.Vel,
-			leaderStats.Vel.Angle(),
-			leaderStats.Cohesion,
-			leaderStats.Separation,
-			leaderStats.Alignment,
-			leaderStats.Targeting,
-		)
-		ebitenutil.DebugPrint(screen, msg)
-	}
-}
+const tickLimiter int = 10
 
 func (s *Simulation) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
@@ -143,9 +108,57 @@ func (s *Simulation) Update() error {
 	if s.tick >= s.maxTPS {
 		s.tick = 0
 	}
-	if s.tick%s.tps == 0 {
-		s.flock.Step(true)
-	}
-	s.flock.Step(false)
+	s.swarm.Step(s.tick%tickLimiter == 0) // Limit the amount of dirty Steps(). If TPS=60, updates=6
 	return nil
+}
+
+func (s *Simulation) Draw(screen *ebiten.Image) {
+	if s.Conf.Debug {
+		s.drawDebug(screen)
+	}
+	for _, b := range s.swarm.Boids {
+		s.imgOP.GeoM.Reset()
+		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
+		s.imgOP.GeoM.Rotate(b.Vel.Angle())
+		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
+		screen.DrawImage(s.boidImg, s.imgOP)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (s *Simulation) drawDebug(screen *ebiten.Image) {
+	leader := s.swarm.Boids[0]
+	k := getBinKey(leader)
+	nr := neighbourRange
+	sr := separationRange
+	for i := -1; i < 2; i++ {
+		for j := -1; j < 2; j++ {
+			x := float64(k[0]+i) * nr
+			y := float64(k[1]+j) * nr
+			ebitenutil.DrawRect(screen, x, y, nr, nr, colGreen)
+			ebitenutil.DrawLine(screen, x, y, x+nr, y, colGreen)
+			ebitenutil.DrawLine(screen, x, y, x, y+nr, colGreen)
+		}
+	}
+	for p := range s.swarm.index {
+		x, y := float64(p[0])*nr, float64(p[1])*nr
+		ebitenutil.DrawRect(screen, x, y, nr, nr, colGreen)
+		ebitenutil.DrawLine(screen, x, y, x+nr, y, colGreen)
+		ebitenutil.DrawLine(screen, x, y, x, y+nr, colGreen)
+	}
+	ebitenutil.DrawRect(screen, leader.Pos.X-sr, leader.Pos.Y-sr, sr*2, sr*2, colRed)
+	t := leaderStats.Target.Sub(targetRange / 2)
+	ebitenutil.DrawRect(screen, t.X, t.Y, targetRange, targetRange, colRed)
+
+	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n"+
+		"coh: %s  sep: %s  ali: %s  tar: %s",
+		ebiten.CurrentTPS(), ebiten.CurrentFPS(),
+		leaderStats.Target.X, leaderStats.Target.Y,
+		leaderStats.Pos.X, leaderStats.Pos.Y,
+		leaderStats.Vel, leaderStats.Vel.Angle(),
+		leaderStats.Cohesion, leaderStats.Separation,
+		leaderStats.Alignment, leaderStats.Targeting,
+	)
+	ebitenutil.DebugPrint(screen, msg)
 }
