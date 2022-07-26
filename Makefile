@@ -5,7 +5,11 @@ MEM=.stats/mem
 
 .PHONY: run
 run:
-	go run main.go -debug
+	go run main.go
+
+.PHONY: debug
+debug:
+	go run main.go -debug=true -effects=false
 
 .PHONY: test
 test:

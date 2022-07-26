@@ -48,7 +48,6 @@ func (s *Swarm) updateBoid(b *Boid, update bool, target vector.V) {
 	tar := centerTarget(b, target)
 	b.Vel = b.Vel.Addv(coh).Addv(sep).Addv(ali).Addv(tar)
 	b.Vel = clampSpeed(b)
-
 	if b.ID == 0 {
 		leaderStats = stats{b.Pos, b.Vel, target, coh, sep, ali, tar}
 	}

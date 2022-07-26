@@ -7,6 +7,7 @@ import (
 	"image/color"
 	_ "image/png"
 	"log"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -31,13 +32,15 @@ type Simulation struct {
 	tick     int
 }
 
+const screenScale float64 = 0.04 // Scales down the sprite
+
 func New(conf Conf) (*Simulation, error) {
 	s := &Simulation{
 		Conf: conf,
 	}
 	s.Log("Loading assets..")
 
-	f, err := assets.FS.Open("fishy.png")
+	f, err := assets.FS.Open("shiny_boid.png")
 	if err != nil {
 		return s, fmt.Errorf("Failed to open boid sprite: %s", err)
 	}
@@ -48,10 +51,10 @@ func New(conf Conf) (*Simulation, error) {
 	}
 
 	s.imgOP = &ebiten.DrawImageOptions{}
-	s.imgOP.GeoM.Scale(conf.ScreenScale, conf.ScreenScale)
+	s.imgOP.GeoM.Scale(screenScale, screenScale)
 	img := ebiten.NewImageFromImage(i)
 	w, h := img.Size()
-	s.boidSize[0], s.boidSize[1] = float64(w)*conf.ScreenScale, float64(h)*conf.ScreenScale
+	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
 	s.boidImg.DrawImage(img, s.imgOP)
 
@@ -95,7 +98,7 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 	return s.Conf.ScreenWidth, s.Conf.ScreenHeight
 }
 
-const tickLimiter int = 10
+const tickLimiter int = 6
 
 func (s *Simulation) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
@@ -112,20 +115,31 @@ func (s *Simulation) Update() error {
 	return nil
 }
 
+const shiftAngle float64 = math.Pi / 2 // Shifts the sprite by 90 degrees
+
 func (s *Simulation) Draw(screen *ebiten.Image) {
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	}
 	for _, b := range s.swarm.Boids {
+		if s.Conf.Effects {
+			s.imgOP.ColorM.Reset()
+			hue := b.Vel.Angle() * 0.05
+			scale := (b.Pos.Angle() + hue)
+			s.imgOP.ColorM.ChangeHSV(hue, 1, scale)
+		}
+
 		s.imgOP.GeoM.Reset()
 		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
-		s.imgOP.GeoM.Rotate(b.Vel.Angle())
+		s.imgOP.GeoM.Rotate(b.Vel.Angle() + shiftAngle)
 		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
 		screen.DrawImage(s.boidImg, s.imgOP)
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const rad2deg float64 = -180 / math.Pi
 
 func (s *Simulation) drawDebug(screen *ebiten.Image) {
 	leader := s.swarm.Boids[0]
@@ -156,7 +170,7 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 		ebiten.CurrentTPS(), ebiten.CurrentFPS(),
 		leaderStats.Target.X, leaderStats.Target.Y,
 		leaderStats.Pos.X, leaderStats.Pos.Y,
-		leaderStats.Vel, leaderStats.Vel.Angle(),
+		leaderStats.Vel, leaderStats.Vel.Angle()*rad2deg,
 		leaderStats.Cohesion, leaderStats.Separation,
 		leaderStats.Alignment, leaderStats.Targeting,
 	)
