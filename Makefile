@@ -37,15 +37,8 @@ showmem:
 	go tool pprof -http localhost:8000 "${MEM}"
 
 .PHONY: lint
-lint: govet gosec
-
-.PHONY: govet
-govet:
-	go vet ./...
-
-.PHONY: gosec
-gosec:
-	gosec -quiet -fmt=golint ./...
+lint:
+	golangci-lint run -E gosec -E gocritic ./...
 
 .PHONY: clean
 clean:

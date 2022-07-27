@@ -9,26 +9,31 @@ import (
 
 type Conf struct {
 	Seed        int64
-	GoRoutines  int
+	Workers     int
 	SwarmSize   int
 	IndexOffset int
 }
 
+// Swarm is a group of Boids.
+// It is moving together most of the time.
 type Swarm struct {
 	Conf  Conf
 	Boids []*Boid
 	Index *Index
 
-	signal chan groupSignal
+	signal chan workerSignal
 	wg     sync.WaitGroup
 }
 
+// New creates a new swarm of Boids, using Conf.
+// It randomises the positions of each Boid and fires up a group of background
+// workers to perform the actual Boid movement updates.
 func New(conf Conf) *Swarm {
 	s := &Swarm{
 		Conf:   conf,
 		Boids:  make([]*Boid, conf.SwarmSize),
 		Index:  NewIndex(conf.IndexOffset),
-		signal: make(chan groupSignal, conf.GoRoutines),
+		signal: make(chan workerSignal, conf.Workers),
 	}
 
 	rand.Seed(conf.Seed)
@@ -41,34 +46,38 @@ func New(conf Conf) *Swarm {
 	}
 
 	// TODO: grab any leftovers if the flock wasn't divided up evenly
-	group := conf.SwarmSize / conf.GoRoutines
-	for i := 0; i < conf.GoRoutines; i++ {
-		boids := s.Boids[i*group : (i*group)+group]
-		go s.updateGroup(boids)
+	worker := conf.SwarmSize / conf.Workers
+	for i := 0; i < conf.Workers; i++ {
+		boids := s.Boids[i*worker : (i*worker)+worker]
+		go s.workerUpdate(boids)
 	}
 	return s
 }
 
+// Update all Boids' velocity (dirty, slow) or position (non-dirty, fast).
+// It also updates the Boid neighbour index if dirty, before hand.
 func (s *Swarm) Update(dirty bool, target vector.V) {
 	// TODO: could allow multiple targets?
 	if dirty {
 		s.Index.Update(s.Boids)
 	}
 
-	sig := groupSignal{dirty, target}
-	s.wg.Add(s.Conf.GoRoutines)
-	for i := 0; i < s.Conf.GoRoutines; i++ {
+	sig := workerSignal{dirty, target}
+	s.wg.Add(s.Conf.Workers)
+	for i := 0; i < s.Conf.Workers; i++ {
 		s.signal <- sig
 	}
 	s.wg.Wait()
 }
 
-type groupSignal struct {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type workerSignal struct {
 	Dirty  bool
 	Target vector.V
 }
 
-func (s *Swarm) updateGroup(boids []*Boid) {
+func (s *Swarm) workerUpdate(boids []*Boid) {
 	for {
 		// TODO: check for termination signal so it can shut down cleanly?
 		sig := <-s.signal

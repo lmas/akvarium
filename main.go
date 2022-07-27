@@ -33,7 +33,7 @@ func main() {
 		ScreenHeight: 720,
 		Swarm: boids.Conf{
 			Seed:        0,
-			GoRoutines:  10,
+			Workers:     10,
 			SwarmSize:   500,
 			IndexOffset: 50,
 		},
@@ -70,7 +70,6 @@ type Simulation struct {
 	imgOP    *ebiten.DrawImageOptions
 	swarm    *boids.Swarm
 	maxTPS   int
-	tps      int
 	tick     int
 	screen   vector.V
 	target   vector.V
@@ -93,12 +92,12 @@ func New(conf SimConf) (*Simulation, error) {
 
 	f, err := assets.Open("assets/shiny_boid.png")
 	if err != nil {
-		return s, fmt.Errorf("Failed to open boid sprite: %s", err)
+		return s, fmt.Errorf("could not open boid sprite: %s", err)
 	}
 	defer f.Close()
 	i, _, err := image.Decode(f)
 	if err != nil {
-		return s, fmt.Errorf("Failed to decode boid sprite: %s", err)
+		return s, fmt.Errorf("could not decode boid sprite: %s", err)
 	}
 
 	img := ebiten.NewImageFromImage(i)

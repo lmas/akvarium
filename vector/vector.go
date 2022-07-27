@@ -5,8 +5,7 @@ import (
 	"math"
 )
 
-const precision int = 6
-
+// V represents a 2D vector.
 type V struct {
 	X, Y float64
 }
@@ -34,7 +33,7 @@ func (v V) Dot(other V) float64 {
 func (v V) Length() float64 {
 	// Using math.Pow instead of plain x*x ensures consistent
 	// and better rounding behaviours, but is waaay slower!
-	//return math.Sqrt(math.Pow(v.X, 2) + math.Pow(v.Y, 2))
+	// return math.Sqrt(math.Pow(v.X, 2) + math.Pow(v.Y, 2))
 	return math.Sqrt(v.Dot(v))
 }
 
@@ -42,6 +41,8 @@ func (v V) Length() float64 {
 func (v V) Within(min, max V) bool {
 	return v.X >= min.X && v.Y >= min.Y && v.X <= max.X && v.Y <= max.Y
 }
+
+const precision int = 6
 
 func (v V) Round() V {
 	output := math.Pow(10, float64(precision))

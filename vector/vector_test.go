@@ -3,7 +3,6 @@ package vector
 import (
 	"math"
 	"testing"
-	//"fmt"
 )
 
 func assertFloat(t *testing.T, got, expected float64) {

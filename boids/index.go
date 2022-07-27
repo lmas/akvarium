@@ -6,8 +6,10 @@ import (
 
 type IndexKey [2]int
 
+// IndexBin contains IDs for Boids in the same bin.
 type IndexBin []int
 
+// Index groups Boids into neighbouring bins.
 type Index struct {
 	idx    indexMap
 	offset float64
@@ -22,6 +24,7 @@ func NewIndex(offset int) *Index {
 	}
 }
 
+// Key returns the key for the neighbouring bin a Boid is part of.
 func (i *Index) Key(b *Boid) IndexKey {
 	v := b.Pos.Div(i.offset)
 	return IndexKey{
@@ -30,6 +33,7 @@ func (i *Index) Key(b *Boid) IndexKey {
 	}
 }
 
+// Update clears the index and reinserts all Boids into new neighbouring bins.
 func (i *Index) Update(boids []*Boid) {
 	i.idx = make(indexMap)
 	for _, b := range boids {
@@ -38,12 +42,14 @@ func (i *Index) Update(boids []*Boid) {
 	}
 }
 
+// IterBins iterates over all available neighbouring bins with Boids inside.
 func (i *Index) IterBins(fun func(IndexKey)) {
 	for b := range i.idx {
 		fun(b)
 	}
 }
 
+// IterNeighbours iterates over all Boids in the same bin.
 func (i *Index) IterNeighbours(b *Boid, fun func(n int)) {
 	k := i.Key(b)
 	for x := -1; x < 2; x++ {

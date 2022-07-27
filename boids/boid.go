@@ -4,6 +4,13 @@ import (
 	"github.com/lmas/boids/vector"
 )
 
+// Boid represents a single boid.
+// It will try to fit in with a Swarm by:
+// - moving towards the center of nearby Boids (Cohesion).
+// - matching with nearby Boids' velocity (Alignment).
+// - avoiding collisions with nearby Boids (Separation).
+//
+// It can optionally move towards a target.
 type Boid struct {
 	ID  int
 	Pos vector.V
@@ -18,14 +25,14 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 
 	num := 0.0
 	coh := vector.New(0, 0)
-	sep := vector.New(0, 0)
 	ali := vector.New(0, 0)
+	sep := vector.New(0, 0)
 	s.Index.IterNeighbours(b, func(id int) {
 		n := s.Boids[id]
 		num += 1
 		coh = coh.Addv(n.Pos)
-		sep = sep.Subv(separation(b, n))
 		ali = ali.Addv(n.Vel)
+		sep = sep.Subv(separation(b, n))
 	})
 
 	if num > 0 {
@@ -33,7 +40,7 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 		ali = alignment(b, ali, num)
 	}
 	tar := centerTarget(b, target)
-	b.Vel = b.Vel.Addv(coh).Addv(sep).Addv(ali).Addv(tar)
+	b.Vel = b.Vel.Addv(coh).Addv(ali).Addv(sep).Addv(tar)
 	b.Vel = clampSpeed(b)
 }
 
@@ -41,6 +48,12 @@ const cohesionFactor float64 = 0.001
 
 func cohesion(b *Boid, coh vector.V, num float64) vector.V {
 	return coh.Div(num).Subv(b.Pos).Mul(cohesionFactor)
+}
+
+const alignmentFactor float64 = 0.05
+
+func alignment(b *Boid, ali vector.V, num float64) vector.V {
+	return ali.Div(num).Subv(b.Vel).Mul(alignmentFactor)
 }
 
 const separationRange float64 = 20
@@ -53,12 +66,6 @@ func separation(b, n *Boid) vector.V {
 		return diff.Div(dist / separationFactor)
 	}
 	return vector.New(0, 0)
-}
-
-const alignmentFactor float64 = 0.05
-
-func alignment(b *Boid, ali vector.V, num float64) vector.V {
-	return ali.Div(num).Subv(b.Vel).Mul(alignmentFactor)
 }
 
 const targetRange float64 = 50
