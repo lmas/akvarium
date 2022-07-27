@@ -14,9 +14,17 @@ var (
 
 func main() {
 	flag.Parse()
-	conf := simulation.DefaultConf()
-	conf.Debug = *flagDebug
-	conf.Effects = *flagEffects
+	conf := simulation.SimConf{
+		Debug:        *flagDebug,
+		Effects:      *flagEffects,
+		ScreenWidth:  1280,
+		ScreenHeight: 720,
+		Swarm: simulation.Conf{
+			Seed:       0,
+			GoRoutines: 10,
+			SwarmSize:  500,
+		},
+	}
 
 	s, err := simulation.New(conf)
 	if err != nil {

@@ -7,9 +7,10 @@ import (
 	"github.com/lmas/boids/vector"
 )
 
-type groupSignal struct {
-	Dirty  bool
-	Target vector.V
+type Conf struct {
+	Seed       int64
+	GoRoutines int
+	SwarmSize  int
 }
 
 type Swarm struct {
@@ -57,6 +58,11 @@ func (s *Swarm) Update(dirty bool, target vector.V) {
 		s.signal <- sig
 	}
 	s.wg.Wait()
+}
+
+type groupSignal struct {
+	Dirty  bool
+	Target vector.V
 }
 
 func (s *Swarm) updateGroup(boids []*Boid) {

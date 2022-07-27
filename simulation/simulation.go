@@ -22,8 +22,16 @@ var (
 	errQuit  = errors.New("quit")
 )
 
+type SimConf struct {
+	Debug        bool
+	Effects      bool
+	ScreenWidth  int
+	ScreenHeight int
+	Swarm        Conf
+}
+
 type Simulation struct {
-	Conf     Conf
+	Conf     SimConf
 	boidSize [2]float64
 	boidImg  *ebiten.Image
 	imgOP    *ebiten.DrawImageOptions
@@ -37,9 +45,13 @@ type Simulation struct {
 
 const screenScale float64 = 0.04 // Scales down the sprite
 
-func New(conf Conf) (*Simulation, error) {
+func New(conf SimConf) (*Simulation, error) {
 	s := &Simulation{
-		Conf: conf,
+		Conf:   conf,
+		swarm:  NewSwarm(conf.Swarm),
+		imgOP:  &ebiten.DrawImageOptions{},
+		screen: vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
+		maxTPS: ebiten.MaxTPS(),
 	}
 	s.Log("Loading assets..")
 
@@ -53,17 +65,12 @@ func New(conf Conf) (*Simulation, error) {
 		return s, fmt.Errorf("Failed to decode boid sprite: %s", err)
 	}
 
-	s.imgOP = &ebiten.DrawImageOptions{}
-	s.imgOP.GeoM.Scale(screenScale, screenScale)
 	img := ebiten.NewImageFromImage(i)
 	w, h := img.Size()
 	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
+	s.imgOP.GeoM.Scale(screenScale, screenScale)
 	s.boidImg.DrawImage(img, s.imgOP)
-
-	s.screen = vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight))
-	s.maxTPS = ebiten.MaxTPS()
-	s.swarm = NewSwarm(conf)
 
 	s.Log("Assets ready")
 	return s, nil
