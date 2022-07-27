@@ -24,8 +24,8 @@ type Boid struct {
 
 const neighbourRange float64 = 50
 
-func (s *Swarm) updateBoid(b *Boid, update bool, target vector.V) {
-	if !update {
+func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
+	if !dirty {
 		b.Pos = b.Pos.Addv(b.Vel.Round())
 		return
 	}

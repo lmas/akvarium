@@ -73,7 +73,10 @@ func (s *Simulation) Log(msg string, args ...interface{}) {
 
 func (s *Simulation) Init(simulationSteps int) {
 	s.Log("Priming simulation..")
-	s.swarm.Init(simulationSteps)
+	for i := 0; i < simulationSteps; i++ {
+		// Must alternate between dirty (updates velocity, expensive) and non-dirty (updates position, cheap).
+		s.swarm.Update(i%2 == 0)
+	}
 	s.Log("Simulation ready")
 }
 
@@ -111,7 +114,7 @@ func (s *Simulation) Update() error {
 	if s.tick >= s.maxTPS {
 		s.tick = 0
 	}
-	s.swarm.Step(s.tick%tickLimiter == 0) // Limit the amount of dirty Steps(). If TPS=60, updates=6
+	s.swarm.Update(s.tick%tickLimiter == 0) // Limit the amount of dirty Steps(). If TPS=60, updates=6
 	return nil
 }
 

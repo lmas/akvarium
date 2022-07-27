@@ -46,14 +46,8 @@ func NewSwarm(conf Conf) *Swarm {
 	return s
 }
 
-func (s *Swarm) Init(simulationSteps int) {
-	for i := 0; i < simulationSteps; i++ {
-		s.Step(i%2 == 0)
-	}
-}
-
-func (s *Swarm) Step(update bool) {
-	if update {
+func (s *Swarm) Update(dirty bool) {
+	if dirty {
 		s.Index()
 		s.target = s.center
 		cx, cy := ebiten.CursorPosition()
@@ -65,7 +59,7 @@ func (s *Swarm) Step(update bool) {
 
 	s.wg.Add(s.Conf.GoRoutines)
 	for i := 0; i < s.Conf.GoRoutines; i++ {
-		s.signal <- update
+		s.signal <- dirty
 	}
 	s.wg.Wait()
 }
@@ -73,9 +67,9 @@ func (s *Swarm) Step(update bool) {
 func (s *Swarm) updateGroup(boids []*Boid) {
 	for {
 		// TODO: check for termination signal so it can shut down cleanly?
-		update := <-s.signal
+		dirty := <-s.signal
 		for _, b := range boids {
-			s.updateBoid(b, update, s.target)
+			s.updateBoid(b, dirty, s.target)
 		}
 		s.wg.Done()
 	}
