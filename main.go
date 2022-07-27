@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/lmas/boids/assets"
 	"github.com/lmas/boids/boids"
 	"github.com/lmas/boids/vector"
 )
@@ -55,6 +55,9 @@ func main() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//go:embed assets/shiny_boid.png
+var assets embed.FS
+
 var (
 	colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
 	colRed   = color.RGBA{0xff, 0x0, 0x0, 0x88}
@@ -94,7 +97,7 @@ func New(conf SimConf) (*Simulation, error) {
 	}
 	s.Log("Loading assets..")
 
-	f, err := assets.FS.Open("shiny_boid.png")
+	f, err := assets.Open("assets/shiny_boid.png")
 	if err != nil {
 		return s, fmt.Errorf("Failed to open boid sprite: %s", err)
 	}
