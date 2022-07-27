@@ -13,6 +13,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/lmas/boids/assets"
+	"github.com/lmas/boids/vector"
 )
 
 var (
@@ -30,6 +31,8 @@ type Simulation struct {
 	maxTPS   int
 	tps      int
 	tick     int
+	screen   vector.V
+	target   vector.V
 }
 
 const screenScale float64 = 0.04 // Scales down the sprite
@@ -58,6 +61,7 @@ func New(conf Conf) (*Simulation, error) {
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
 	s.boidImg.DrawImage(img, s.imgOP)
 
+	s.screen = vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight))
 	s.maxTPS = ebiten.MaxTPS()
 	s.swarm = NewSwarm(conf)
 
@@ -73,9 +77,10 @@ func (s *Simulation) Log(msg string, args ...interface{}) {
 
 func (s *Simulation) Init(simulationSteps int) {
 	s.Log("Priming simulation..")
+	t := s.screen.Div(2)
 	for i := 0; i < simulationSteps; i++ {
 		// Must alternate between dirty (updates velocity, expensive) and non-dirty (updates position, cheap).
-		s.swarm.Update(i%2 == 0)
+		s.swarm.Update(i%2 == 0, t)
 	}
 	s.Log("Simulation ready")
 }
@@ -103,6 +108,8 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 
 const tickLimiter int = 6
 
+var zeroVec = vector.New(0, 0)
+
 func (s *Simulation) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
 		return errQuit
@@ -114,7 +121,18 @@ func (s *Simulation) Update() error {
 	if s.tick >= s.maxTPS {
 		s.tick = 0
 	}
-	s.swarm.Update(s.tick%tickLimiter == 0) // Limit the amount of dirty Steps(). If TPS=60, updates=6
+	dirty := false
+	if s.tick%tickLimiter == 0 {
+		dirty = true
+		cx, cy := ebiten.CursorPosition()
+		cur := vector.New(float64(cx), float64(cy))
+		if cur.Within(zeroVec, s.screen) {
+			s.target = cur
+		} else {
+			s.target = s.screen.Div(2)
+		}
+	}
+	s.swarm.Update(dirty, s.target)
 	return nil
 }
 
@@ -165,17 +183,14 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 		ebitenutil.DrawLine(screen, x, y, x, y+nr, colGreen)
 	}
 	ebitenutil.DrawRect(screen, leader.Pos.X-sr, leader.Pos.Y-sr, sr*2, sr*2, colRed)
-	t := leaderStats.Target.Sub(targetRange / 2)
+	t := s.target.Sub(targetRange / 2)
 	ebitenutil.DrawRect(screen, t.X, t.Y, targetRange, targetRange, colRed)
 
-	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n"+
-		"coh: %s  sep: %s  ali: %s  tar: %s",
+	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n",
 		ebiten.CurrentTPS(), ebiten.CurrentFPS(),
-		leaderStats.Target.X, leaderStats.Target.Y,
-		leaderStats.Pos.X, leaderStats.Pos.Y,
-		leaderStats.Vel, leaderStats.Vel.Angle()*rad2deg,
-		leaderStats.Cohesion, leaderStats.Separation,
-		leaderStats.Alignment, leaderStats.Targeting,
+		s.target.X, s.target.Y,
+		leader.Pos.X, leader.Pos.Y,
+		leader.Vel, leader.Vel.Angle()*rad2deg,
 	)
 	ebitenutil.DebugPrint(screen, msg)
 }

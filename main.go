@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	flagDebug     = flag.Bool("debug", false, "Toggle debug info")
-	flagEffects   = flag.Bool("effects", true, "Show extra graphic effects")
-	flagInitSteps = flag.Int("initsteps", 0, "Run initial steps to prime the simulation")
+	flagDebug   = flag.Bool("debug", false, "Toggle debug info")
+	flagEffects = flag.Bool("effects", true, "Show extra graphic effects")
+	flagInit    = flag.Int("init", 2000, "Run initial update steps to prime the simulation")
 )
 
 func main() {
@@ -23,8 +23,8 @@ func main() {
 		panic(err)
 	}
 
-	if *flagInitSteps > 0 {
-		s.Init(*flagInitSteps)
+	if *flagInit > 0 {
+		s.Init(*flagInit)
 	}
 
 	if err := s.Run(); err != nil {

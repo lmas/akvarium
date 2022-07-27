@@ -4,18 +4,6 @@ import (
 	"github.com/lmas/boids/vector"
 )
 
-type stats struct {
-	Pos        vector.V
-	Vel        vector.V
-	Target     vector.V
-	Cohesion   vector.V
-	Separation vector.V
-	Alignment  vector.V
-	Targeting  vector.V
-}
-
-var leaderStats = stats{}
-
 type Boid struct {
 	ID  int
 	Pos vector.V
@@ -48,9 +36,6 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 	tar := centerTarget(b, target)
 	b.Vel = b.Vel.Addv(coh).Addv(sep).Addv(ali).Addv(tar)
 	b.Vel = clampSpeed(b)
-	if b.ID == 0 {
-		leaderStats = stats{b.Pos, b.Vel, target, coh, sep, ali, tar}
-	}
 }
 
 const cohesionFactor float64 = 0.001

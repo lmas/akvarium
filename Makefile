@@ -9,7 +9,7 @@ run:
 
 .PHONY: debug
 debug:
-	go run main.go -debug=true -effects=false
+	go run main.go -debug=true -effects=false -init=0
 
 .PHONY: test
 test:
