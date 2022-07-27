@@ -1,4 +1,4 @@
-package simulation
+package boids
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func BenchmarkBoids(b *testing.B) {
-	s := NewSwarm(Conf{
+	s := New(Conf{
 		Seed:       0,
 		GoRoutines: 10,
 		SwarmSize:  500,

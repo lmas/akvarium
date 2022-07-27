@@ -1,4 +1,4 @@
-package simulation
+package boids
 
 import (
 	"github.com/lmas/boids/vector"

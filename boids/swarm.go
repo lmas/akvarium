@@ -1,4 +1,4 @@
-package simulation
+package boids
 
 import (
 	"math/rand"
@@ -21,7 +21,7 @@ type Swarm struct {
 	wg     sync.WaitGroup
 }
 
-func NewSwarm(conf Conf) *Swarm {
+func New(conf Conf) *Swarm {
 	s := &Swarm{
 		Conf:   conf,
 		Boids:  make([]*Boid, conf.SwarmSize),
