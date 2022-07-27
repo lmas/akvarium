@@ -32,9 +32,10 @@ func main() {
 		ScreenWidth:  1280,
 		ScreenHeight: 720,
 		Swarm: boids.Conf{
-			Seed:       0,
-			GoRoutines: 10,
-			SwarmSize:  500,
+			Seed:        0,
+			GoRoutines:  10,
+			SwarmSize:   500,
+			IndexOffset: 50,
 		},
 	}
 
@@ -206,15 +207,38 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const rad2deg float64 = -180 / math.Pi
-const indRad float64 = 20
 
 func (s *Simulation) drawDebug(screen *ebiten.Image) {
 	leader := s.swarm.Boids[0]
-	l := leader.Pos.Sub(indRad)
-	i := indRad * 2
-	ebitenutil.DrawRect(screen, l.X, l.Y, i, i, colRed)
-	t := s.target.Sub(indRad)
-	ebitenutil.DrawRect(screen, t.X, t.Y, i, i, colRed)
+	k := s.swarm.Index.Key(leader)
+	r := float64(s.Conf.Swarm.IndexOffset)
+
+	// Shows bins around leader
+	for i := -1; i < 2; i++ {
+		for j := -1; j < 2; j++ {
+			x := float64(k[0]+i) * r
+			y := float64(k[1]+j) * r
+			ebitenutil.DrawRect(screen, x, y, r, r, colGreen)
+			ebitenutil.DrawLine(screen, x, y, x+r, y, colGreen)
+			ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
+		}
+	}
+
+	// Shows all bins
+	s.swarm.Index.IterBins(func(bin boids.IndexKey) {
+		x, y := float64(bin[0])*r, float64(bin[1])*r
+		ebitenutil.DrawRect(screen, x, y, r, r, colGreen)
+		ebitenutil.DrawLine(screen, x, y, x+r, y, colGreen)
+		ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
+	})
+
+	// Shows leader pos
+	l := leader.Pos.Sub(r / 2)
+	ebitenutil.DrawRect(screen, l.X, l.Y, r, r, colRed)
+
+	// Shows target pos
+	t := s.target.Sub(r / 2)
+	ebitenutil.DrawRect(screen, t.X, t.Y, r, r, colRed)
 
 	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n",
 		ebiten.CurrentTPS(), ebiten.CurrentFPS(),

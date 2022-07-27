@@ -4,41 +4,60 @@ import (
 	"math"
 )
 
-type bin []int
-type binIndex map[binKey]bin
+type IndexKey [2]int
 
-type binKey [2]int
+type IndexBin []int
 
-func getBinKey(b *Boid) binKey {
-	v := b.Pos.Div(neighbourRange)
-	return binKey{
+type Index struct {
+	idx    indexMap
+	offset float64
+}
+
+type indexMap map[IndexKey]IndexBin
+
+func NewIndex(offset int) *Index {
+	return &Index{
+		idx:    make(indexMap),
+		offset: float64(offset),
+	}
+}
+
+func (i *Index) Key(b *Boid) IndexKey {
+	v := b.Pos.Div(i.offset)
+	return IndexKey{
 		int(math.Floor(v.X)),
 		int(math.Floor(v.Y)),
 	}
 }
 
-func (s *Swarm) Index() {
-	s.index = make(binIndex)
-	for _, b := range s.Boids {
-		k := getBinKey(b)
-		s.index[k] = append(s.index[k], b.ID)
+func (i *Index) Update(boids []*Boid) {
+	i.idx = make(indexMap)
+	for _, b := range boids {
+		k := i.Key(b)
+		i.idx[k] = append(i.idx[k], b.ID)
 	}
 }
 
-func (s *Swarm) IterNeighbours(b *Boid, fun func(n *Boid)) {
-	k := getBinKey(b)
-	for i := -1; i < 2; i++ {
-		for j := -1; j < 2; j++ {
-			s.iterBin(binKey{k[0] + i, k[1] + j}, b, fun)
+func (i *Index) IterBins(fun func(IndexKey)) {
+	for b := range i.idx {
+		fun(b)
+	}
+}
+
+func (i *Index) IterNeighbours(b *Boid, fun func(n int)) {
+	k := i.Key(b)
+	for x := -1; x < 2; x++ {
+		for y := -1; y < 2; y++ {
+			i.iterBin(IndexKey{k[0] + x, k[1] + y}, b.ID, fun)
 		}
 	}
 }
 
-func (s *Swarm) iterBin(k binKey, b *Boid, fun func(n *Boid)) {
-	for _, i := range s.index[k] {
-		if i == b.ID {
+func (i *Index) iterBin(k IndexKey, id int, fun func(n int)) {
+	for _, n := range i.idx[k] {
+		if n == id {
 			continue
 		}
-		fun(s.Boids[i])
+		fun(n)
 	}
 }

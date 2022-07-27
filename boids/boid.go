@@ -10,8 +10,6 @@ type Boid struct {
 	Vel vector.V
 }
 
-const neighbourRange float64 = 50
-
 func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 	if !dirty {
 		b.Pos = b.Pos.Addv(b.Vel.Round())
@@ -22,7 +20,8 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 	coh := vector.New(0, 0)
 	sep := vector.New(0, 0)
 	ali := vector.New(0, 0)
-	s.IterNeighbours(b, func(n *Boid) {
+	s.Index.IterNeighbours(b, func(id int) {
+		n := s.Boids[id]
 		num += 1
 		coh = coh.Addv(n.Pos)
 		sep = sep.Subv(separation(b, n))

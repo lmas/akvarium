@@ -8,15 +8,17 @@ import (
 )
 
 type Conf struct {
-	Seed       int64
-	GoRoutines int
-	SwarmSize  int
+	Seed        int64
+	GoRoutines  int
+	SwarmSize   int
+	IndexOffset int
 }
 
 type Swarm struct {
-	Conf   Conf
-	Boids  []*Boid
-	index  binIndex
+	Conf  Conf
+	Boids []*Boid
+	Index *Index
+
 	signal chan groupSignal
 	wg     sync.WaitGroup
 }
@@ -25,6 +27,7 @@ func New(conf Conf) *Swarm {
 	s := &Swarm{
 		Conf:   conf,
 		Boids:  make([]*Boid, conf.SwarmSize),
+		Index:  NewIndex(conf.IndexOffset),
 		signal: make(chan groupSignal, conf.GoRoutines),
 	}
 
@@ -49,7 +52,7 @@ func New(conf Conf) *Swarm {
 func (s *Swarm) Update(dirty bool, target vector.V) {
 	// TODO: could allow multiple targets?
 	if dirty {
-		s.Index()
+		s.Index.Update(s.Boids)
 	}
 
 	sig := groupSignal{dirty, target}
