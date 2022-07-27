@@ -19,16 +19,16 @@ import (
 )
 
 var (
-	flagDebug   = flag.Bool("debug", false, "Toggle debug info")
-	flagEffects = flag.Bool("effects", true, "Show extra graphic effects")
-	flagInit    = flag.Int("init", 2000, "Run initial update steps to prime the simulation")
+	flagDebug  = flag.Bool("debug", false, "Toggle debug info")
+	flagPretty = flag.Bool("pretty", true, "Show pretty graphic effects")
+	flagInit   = flag.Int("init", 2000, "Run initial updates to prime the simulation")
 )
 
 func main() {
 	flag.Parse()
 	conf := SimConf{
 		Debug:        *flagDebug,
-		Effects:      *flagEffects,
+		Pretty:       *flagPretty,
 		ScreenWidth:  1280,
 		ScreenHeight: 720,
 		Swarm: boids.Conf{
@@ -55,18 +55,9 @@ func main() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//go:embed assets/shiny_boid.png
-var assets embed.FS
-
-var (
-	colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
-	colRed   = color.RGBA{0xff, 0x0, 0x0, 0x88}
-	errQuit  = errors.New("quit")
-)
-
 type SimConf struct {
 	Debug        bool
-	Effects      bool
+	Pretty       bool
 	ScreenWidth  int
 	ScreenHeight int
 	Swarm        boids.Conf
@@ -84,6 +75,9 @@ type Simulation struct {
 	screen   vector.V
 	target   vector.V
 }
+
+//go:embed assets/shiny_boid.png
+var assets embed.FS
 
 const screenScale float64 = 0.04 // Scales down the sprite
 
@@ -128,7 +122,7 @@ func (s *Simulation) Init(simulationSteps int) {
 	s.Log("Priming simulation..")
 	t := s.screen.Div(2)
 	for i := 0; i < simulationSteps; i++ {
-		// Must alternate between dirty (updates velocity, expensive) and non-dirty (updates position, cheap).
+		// Must alternate between updating velocity (dirty) and position (non-dirty)
 		s.swarm.Update(i%2 == 0, t)
 	}
 	s.Log("Simulation ready")
@@ -157,7 +151,10 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 
 const tickLimiter int = 6
 
-var zeroVec = vector.New(0, 0)
+var (
+	zeroVec = vector.New(0, 0)
+	errQuit = errors.New("quit")
+)
 
 func (s *Simulation) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
@@ -192,7 +189,7 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 		s.drawDebug(screen)
 	}
 	for _, b := range s.swarm.Boids {
-		if s.Conf.Effects {
+		if s.Conf.Pretty {
 			s.imgOP.ColorM.Reset()
 			hue := b.Vel.Angle() * 0.05
 			scale := (b.Pos.Angle() + hue)
@@ -210,6 +207,11 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const rad2deg float64 = -180 / math.Pi
+
+var (
+	colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
+	colRed   = color.RGBA{0xff, 0x0, 0x0, 0x88}
+)
 
 func (s *Simulation) drawDebug(screen *ebiten.Image) {
 	leader := s.swarm.Boids[0]

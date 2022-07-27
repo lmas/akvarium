@@ -15,6 +15,7 @@ func BenchmarkBoids(b *testing.B) {
 	v := vector.New(0, 0)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		s.Update(true, v)
+		// Must alternate between updating velocity (dirty) and position (non-dirty)
+		s.Update(i%2 == 0, v)
 	}
 }

@@ -9,7 +9,7 @@ run:
 
 .PHONY: debug
 debug:
-	go run main.go -debug=true -effects=false -init=0
+	go run main.go -debug=true -pretty=false -init=0
 
 .PHONY: test
 test:
@@ -21,8 +21,8 @@ cover:
 
 .PHONY: bench
 bench:
-	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./simulation
-	rm simulation.test
+	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./boids
+	rm boids.test
 
 .PHONY: profile
 profile: bench
