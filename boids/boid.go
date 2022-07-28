@@ -70,7 +70,7 @@ func separation(b, n *Boid) vector.V {
 
 const targetRange float64 = 50
 const targetRepelFactor float64 = 0.3
-const targetAttractFactor float64 = 0.0001
+const targetAttractFactor float64 = 0.00004
 
 func centerTarget(b *Boid, target vector.V) vector.V {
 	diff := target.Subv(b.Pos)

@@ -49,7 +49,7 @@ func (i *Index) IterBins(fun func(IndexKey)) {
 	}
 }
 
-// IterNeighbours iterates over all Boids in the same bin.
+// IterNeighbours iterates over all Boids in the same bin and the 8 neighbouring bins.
 func (i *Index) IterNeighbours(b *Boid, fun func(n int)) {
 	k := i.Key(b)
 	for x := -1; x < 2; x++ {

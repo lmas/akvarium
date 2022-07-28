@@ -67,6 +67,7 @@ type Simulation struct {
 	Conf     SimConf
 	boidSize [2]float64
 	boidImg  *ebiten.Image
+	bgImg    *ebiten.Image
 	imgOP    *ebiten.DrawImageOptions
 	swarm    *boids.Swarm
 	maxTPS   int
@@ -76,36 +77,56 @@ type Simulation struct {
 }
 
 //go:embed assets/shiny_boid.png
+//go:embed assets/bg.png
 var assets embed.FS
 
 const screenScale float64 = 0.04 // Scales down the sprite
 
+func loadImg(p string) (image.Image, error) {
+	f, err := assets.Open(p)
+	if err != nil {
+		return nil, fmt.Errorf("could not open '%s': %s", p, err)
+	}
+	defer f.Close()
+	i, _, err := image.Decode(f)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode '%s': %s", p, err)
+	}
+	return i, nil
+}
+
 func New(conf SimConf) (*Simulation, error) {
 	s := &Simulation{
-		Conf:   conf,
-		swarm:  boids.New(conf.Swarm),
-		imgOP:  &ebiten.DrawImageOptions{},
+		Conf:  conf,
+		swarm: boids.New(conf.Swarm),
+		imgOP: &ebiten.DrawImageOptions{
+			Filter: ebiten.FilterLinear,
+		},
 		screen: vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
 		maxTPS: ebiten.MaxTPS(),
 	}
 	s.Log("Loading assets..")
 
-	f, err := assets.Open("assets/shiny_boid.png")
+	bg, err := loadImg("assets/bg.png")
 	if err != nil {
-		return s, fmt.Errorf("could not open boid sprite: %s", err)
+		return nil, err
 	}
-	defer f.Close()
-	i, _, err := image.Decode(f)
-	if err != nil {
-		return s, fmt.Errorf("could not decode boid sprite: %s", err)
-	}
+	bgi := ebiten.NewImageFromImage(bg)
+	s.bgImg = ebiten.NewImage(conf.ScreenWidth, conf.ScreenHeight)
+	s.imgOP.GeoM.Scale(s.screen.X/float64(bg.Bounds().Dx()), s.screen.Y/float64(bg.Bounds().Dy()))
+	s.bgImg.DrawImage(bgi, s.imgOP)
+	s.imgOP.GeoM.Reset()
 
-	img := ebiten.NewImageFromImage(i)
-	w, h := img.Size()
+	sprite, err := loadImg("assets/shiny_boid.png")
+	if err != nil {
+		return nil, err
+	}
+	si := ebiten.NewImageFromImage(sprite)
+	w, h := si.Size()
 	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
 	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
 	s.imgOP.GeoM.Scale(screenScale, screenScale)
-	s.boidImg.DrawImage(img, s.imgOP)
+	s.boidImg.DrawImage(si, s.imgOP)
 
 	s.Log("Assets ready")
 	return s, nil
@@ -184,17 +205,22 @@ func (s *Simulation) Update() error {
 const shiftAngle float64 = math.Pi / 2 // Shifts the sprite by 90 degrees
 
 func (s *Simulation) Draw(screen *ebiten.Image) {
+	s.imgOP.ColorM.Reset()
+	s.imgOP.GeoM.Reset()
+	screen.DrawImage(s.bgImg, s.imgOP)
+
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	}
+
 	for _, b := range s.swarm.Boids {
 		if s.Conf.Pretty {
 			s.imgOP.ColorM.Reset()
-			hue := b.Vel.Angle() * 0.05
-			scale := (b.Pos.Angle() + hue)
-			s.imgOP.ColorM.ChangeHSV(hue, 1, scale)
+			hue := -b.Pos.Y * 0.001
+			brightness := 1 - b.Pos.Y*0.001
+			scale := 1 - b.Pos.Y*0.0013
+			s.imgOP.ColorM.ChangeHSV(hue, brightness, scale)
 		}
-
 		s.imgOP.GeoM.Reset()
 		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
 		s.imgOP.GeoM.Rotate(b.Vel.Angle() + shiftAngle)
@@ -234,6 +260,12 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 		ebitenutil.DrawRect(screen, x, y, r, r, colGreen)
 		ebitenutil.DrawLine(screen, x, y, x+r, y, colGreen)
 		ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
+	})
+
+	// Show lines connecting leader with it's neighbours
+	s.swarm.Index.IterNeighbours(leader, func(id int) {
+		n := s.swarm.Boids[id]
+		ebitenutil.DrawLine(screen, leader.Pos.X, leader.Pos.Y, n.Pos.X, n.Pos.Y, colGreen)
 	})
 
 	// Shows leader pos
