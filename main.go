@@ -27,10 +27,11 @@ var (
 func main() {
 	flag.Parse()
 	conf := SimConf{
-		Debug:        *flagDebug,
-		Pretty:       *flagPretty,
-		ScreenWidth:  1280,
-		ScreenHeight: 720,
+		Debug:         *flagDebug,
+		Pretty:        *flagPretty,
+		ScreenWidth:   1280,
+		ScreenHeight:  720,
+		UpdatesPerSec: 10,
 		Swarm: boids.Conf{
 			Seed:        0,
 			Workers:     10,
@@ -56,31 +57,74 @@ func main() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type SimConf struct {
-	Debug        bool
-	Pretty       bool
-	ScreenWidth  int
-	ScreenHeight int
-	Swarm        boids.Conf
+	Debug         bool
+	Pretty        bool
+	ScreenWidth   int
+	ScreenHeight  int
+	UpdatesPerSec int
+	Swarm         boids.Conf
 }
 
 type Simulation struct {
-	Conf     SimConf
-	boidSize [2]float64
-	boidImg  *ebiten.Image
-	bgImg    *ebiten.Image
-	imgOP    *ebiten.DrawImageOptions
-	swarm    *boids.Swarm
-	maxTPS   int
-	tick     int
-	screen   vector.V
-	target   vector.V
+	Conf       SimConf
+	boidSize   [2]float64
+	boidImg    *ebiten.Image
+	bgImg      *ebiten.Image
+	imgOP      *ebiten.DrawImageOptions
+	shader     *ebiten.Shader
+	swarm      *boids.Swarm
+	screen     vector.V
+	target     vector.V
+	maxTPS     int
+	tickUpdate int
+	tick       int
 }
 
-//go:embed assets/shiny_boid.png
 //go:embed assets/bg.png
+//go:embed assets/boid.png
 var assets embed.FS
 
 const screenScale float64 = 0.04 // Scales down the sprite
+
+func New(conf SimConf) (*Simulation, error) {
+	tps := ebiten.MaxTPS()
+	s := &Simulation{
+		Conf:  conf,
+		swarm: boids.New(conf.Swarm),
+		imgOP: &ebiten.DrawImageOptions{
+			Filter: ebiten.FilterLinear,
+		},
+		screen:     vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
+		maxTPS:     tps,
+		tickUpdate: tps / conf.UpdatesPerSec,
+	}
+	s.Log("Loading assets..")
+
+	bg, err := loadImg("assets/bg.png")
+	if err != nil {
+		return nil, err
+	}
+	bgi := ebiten.NewImageFromImage(bg)
+	w, h := bgi.Size()
+	s.bgImg = ebiten.NewImage(conf.ScreenWidth, conf.ScreenHeight)
+	s.imgOP.GeoM.Scale(s.screen.X/float64(w), s.screen.Y/float64(h))
+	s.bgImg.DrawImage(bgi, s.imgOP)
+	s.imgOP.GeoM.Reset()
+
+	sprite, err := loadImg("assets/boid.png")
+	if err != nil {
+		return nil, err
+	}
+	si := ebiten.NewImageFromImage(sprite)
+	w, h = si.Size()
+	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
+	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
+	s.imgOP.GeoM.Scale(screenScale, screenScale)
+	s.boidImg.DrawImage(si, s.imgOP)
+
+	s.Log("Assets ready")
+	return s, nil
+}
 
 func loadImg(p string) (image.Image, error) {
 	f, err := assets.Open(p)
@@ -93,43 +137,6 @@ func loadImg(p string) (image.Image, error) {
 		return nil, fmt.Errorf("could not decode '%s': %s", p, err)
 	}
 	return i, nil
-}
-
-func New(conf SimConf) (*Simulation, error) {
-	s := &Simulation{
-		Conf:  conf,
-		swarm: boids.New(conf.Swarm),
-		imgOP: &ebiten.DrawImageOptions{
-			Filter: ebiten.FilterLinear,
-		},
-		screen: vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
-		maxTPS: ebiten.MaxTPS(),
-	}
-	s.Log("Loading assets..")
-
-	bg, err := loadImg("assets/bg.png")
-	if err != nil {
-		return nil, err
-	}
-	bgi := ebiten.NewImageFromImage(bg)
-	s.bgImg = ebiten.NewImage(conf.ScreenWidth, conf.ScreenHeight)
-	s.imgOP.GeoM.Scale(s.screen.X/float64(bg.Bounds().Dx()), s.screen.Y/float64(bg.Bounds().Dy()))
-	s.bgImg.DrawImage(bgi, s.imgOP)
-	s.imgOP.GeoM.Reset()
-
-	sprite, err := loadImg("assets/shiny_boid.png")
-	if err != nil {
-		return nil, err
-	}
-	si := ebiten.NewImageFromImage(sprite)
-	w, h := si.Size()
-	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
-	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
-	s.imgOP.GeoM.Scale(screenScale, screenScale)
-	s.boidImg.DrawImage(si, s.imgOP)
-
-	s.Log("Assets ready")
-	return s, nil
 }
 
 func (s *Simulation) Log(msg string, args ...interface{}) {
@@ -169,8 +176,6 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 	return s.Conf.ScreenWidth, s.Conf.ScreenHeight
 }
 
-const tickLimiter int = 6
-
 var (
 	zeroVec = vector.New(0, 0)
 	errQuit = errors.New("quit")
@@ -183,12 +188,10 @@ func (s *Simulation) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
-	s.tick += 1
-	if s.tick >= s.maxTPS {
-		s.tick = 0
-	}
 	dirty := false
-	if s.tick%tickLimiter == 0 {
+	s.tick += 1.0
+	if s.tick%s.tickUpdate == 0 {
+		s.tick = 0
 		dirty = true
 		cx, cy := ebiten.CursorPosition()
 		cur := vector.New(float64(cx), float64(cy))
@@ -202,30 +205,45 @@ func (s *Simulation) Update() error {
 	return nil
 }
 
-const shiftAngle float64 = math.Pi / 2 // Shifts the sprite by 90 degrees
+const maxAngleSE float64 = 0.785
+const maxAngleS float64 = 1.570
+const maxAngleSW float64 = 2.356
+const maxAngleNE float64 = -maxAngleSE
+const maxAngleN float64 = -maxAngleS
+const maxAngleNW float64 = -maxAngleSW
 
 func (s *Simulation) Draw(screen *ebiten.Image) {
-	s.imgOP.ColorM.Reset()
-	s.imgOP.GeoM.Reset()
-	screen.DrawImage(s.bgImg, s.imgOP)
+	if s.Conf.Pretty {
+		screen.DrawImage(s.bgImg, s.imgOP)
+	}
 
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	}
 
 	for _, b := range s.swarm.Boids {
+		a := b.Vel.Angle()
 		if s.Conf.Pretty {
-			s.imgOP.ColorM.Reset()
+			if a > maxAngleSE && a < maxAngleS {
+				a = maxAngleSE
+			} else if a < maxAngleSW && a > maxAngleS {
+				a = maxAngleSW
+			} else if a < maxAngleNE && a > maxAngleN {
+				a = maxAngleNE
+			} else if a > maxAngleNW && a < maxAngleN {
+				a = maxAngleNW
+			}
 			hue := -b.Pos.Y * 0.001
 			brightness := 1 - b.Pos.Y*0.001
 			scale := 1 - b.Pos.Y*0.0013
 			s.imgOP.ColorM.ChangeHSV(hue, brightness, scale)
 		}
-		s.imgOP.GeoM.Reset()
 		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
-		s.imgOP.GeoM.Rotate(b.Vel.Angle() + shiftAngle)
+		s.imgOP.GeoM.Rotate(a)
 		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
 		screen.DrawImage(s.boidImg, s.imgOP)
+		s.imgOP.ColorM.Reset()
+		s.imgOP.GeoM.Reset()
 	}
 }
 
