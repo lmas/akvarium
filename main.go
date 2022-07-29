@@ -67,10 +67,9 @@ type SimConf struct {
 
 type Simulation struct {
 	Conf       SimConf
-	boidSize   [2]float64
 	boidImg    *ebiten.Image
 	bgImg      *ebiten.Image
-	imgOP      *ebiten.DrawImageOptions
+	op         *ebiten.DrawImageOptions
 	shader     *ebiten.Shader
 	swarm      *boids.Swarm
 	screen     vector.V
@@ -91,7 +90,7 @@ func New(conf SimConf) (*Simulation, error) {
 	s := &Simulation{
 		Conf:  conf,
 		swarm: boids.New(conf.Swarm),
-		imgOP: &ebiten.DrawImageOptions{
+		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
 		},
 		screen:     vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
@@ -107,9 +106,8 @@ func New(conf SimConf) (*Simulation, error) {
 	bgi := ebiten.NewImageFromImage(bg)
 	w, h := bgi.Size()
 	s.bgImg = ebiten.NewImage(conf.ScreenWidth, conf.ScreenHeight)
-	s.imgOP.GeoM.Scale(s.screen.X/float64(w), s.screen.Y/float64(h))
-	s.bgImg.DrawImage(bgi, s.imgOP)
-	s.imgOP.GeoM.Reset()
+	s.op.GeoM.Scale(s.screen.X/float64(w), s.screen.Y/float64(h))
+	s.draw(s.bgImg, bgi)
 
 	sprite, err := loadImg("assets/boid.png")
 	if err != nil {
@@ -117,10 +115,9 @@ func New(conf SimConf) (*Simulation, error) {
 	}
 	si := ebiten.NewImageFromImage(sprite)
 	w, h = si.Size()
-	s.boidSize[0], s.boidSize[1] = float64(w)*screenScale, float64(h)*screenScale
-	s.boidImg = ebiten.NewImage(int(s.boidSize[0]), int(s.boidSize[1]))
-	s.imgOP.GeoM.Scale(screenScale, screenScale)
-	s.boidImg.DrawImage(si, s.imgOP)
+	s.boidImg = ebiten.NewImage(int(float64(w)*screenScale), int(float64(h)*screenScale))
+	s.op.GeoM.Scale(screenScale, screenScale)
+	s.draw(s.boidImg, si)
 
 	s.Log("Assets ready")
 	return s, nil
@@ -205,45 +202,63 @@ func (s *Simulation) Update() error {
 	return nil
 }
 
-const maxAngleSE float64 = 0.785
-const maxAngleS float64 = 1.570
-const maxAngleSW float64 = 2.356
-const maxAngleNE float64 = -maxAngleSE
-const maxAngleN float64 = -maxAngleS
-const maxAngleNW float64 = -maxAngleSW
+const maxAngleN float64 = -math.Pi / 2
+const maxAngleNE float64 = -math.Pi / 4
+const maxAngleSE float64 = math.Pi / 4
+const maxAngleS float64 = math.Pi / 2
+
+func clampAngleAndFlip(a float64) (float64, bool) {
+	flipped := false
+	if a < maxAngleN {
+		a += math.Pi
+		flipped = true
+	} else if a > maxAngleS {
+		a -= math.Pi
+		flipped = true
+	}
+	if a > maxAngleN && a < maxAngleNE {
+		a = maxAngleNE
+	} else if a < maxAngleS && a > maxAngleSE {
+		a = maxAngleSE
+	}
+	return a, flipped
+}
+
+func rotateAndTranslate(pos vector.V, angle float64, src *ebiten.Image, op *ebiten.DrawImageOptions) {
+	w, h := float64(src.Bounds().Dx()), float64(src.Bounds().Dy())
+	a, flipped := clampAngleAndFlip(angle)
+	if flipped {
+		op.GeoM.Scale(-1, 1)
+		op.GeoM.Translate(w, 0)
+	}
+	op.GeoM.Translate(-w/2, -h/2)
+	op.GeoM.Rotate(a)
+	op.GeoM.Translate(pos.X, pos.Y)
+}
+
+func (s *Simulation) draw(dst, src *ebiten.Image) {
+	dst.DrawImage(src, s.op)
+	s.op.ColorM.Reset()
+	s.op.GeoM.Reset()
+}
 
 func (s *Simulation) Draw(screen *ebiten.Image) {
 	if s.Conf.Pretty {
-		screen.DrawImage(s.bgImg, s.imgOP)
+		s.draw(screen, s.bgImg)
 	}
-
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	}
 
 	for _, b := range s.swarm.Boids {
-		a := b.Vel.Angle()
+		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boidImg, s.op)
 		if s.Conf.Pretty {
-			if a > maxAngleSE && a < maxAngleS {
-				a = maxAngleSE
-			} else if a < maxAngleSW && a > maxAngleS {
-				a = maxAngleSW
-			} else if a < maxAngleNE && a > maxAngleN {
-				a = maxAngleNE
-			} else if a > maxAngleNW && a < maxAngleN {
-				a = maxAngleNW
-			}
 			hue := -b.Pos.Y * 0.001
 			brightness := 1 - b.Pos.Y*0.001
 			scale := 1 - b.Pos.Y*0.0013
-			s.imgOP.ColorM.ChangeHSV(hue, brightness, scale)
+			s.op.ColorM.ChangeHSV(hue, brightness, scale)
 		}
-		s.imgOP.GeoM.Translate(-s.boidSize[0]/2, -s.boidSize[1]/2)
-		s.imgOP.GeoM.Rotate(a)
-		s.imgOP.GeoM.Translate(b.Pos.X, b.Pos.Y)
-		screen.DrawImage(s.boidImg, s.imgOP)
-		s.imgOP.ColorM.Reset()
-		s.imgOP.GeoM.Reset()
+		s.draw(screen, s.boidImg)
 	}
 }
 
