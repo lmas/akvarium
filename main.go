@@ -15,7 +15,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/lmas/boids/boids"
-	"github.com/lmas/boids/vector"
 )
 
 var (
@@ -66,17 +65,14 @@ type SimConf struct {
 }
 
 type Simulation struct {
-	Conf       SimConf
-	boidImg    *ebiten.Image
-	bgImg      *ebiten.Image
-	op         *ebiten.DrawImageOptions
-	shader     *ebiten.Shader
-	swarm      *boids.Swarm
-	screen     vector.V
-	target     vector.V
-	maxTPS     int
-	tickUpdate int
-	tick       int
+	Conf    SimConf
+	boidImg *ebiten.Image
+	bgImg   *ebiten.Image
+	op      *ebiten.DrawImageOptions
+	swarm   *boids.Swarm
+	screen  boids.Vector
+	target  boids.Vector
+	tick    *Ticker
 }
 
 //go:embed assets/bg.png
@@ -86,16 +82,14 @@ var assets embed.FS
 const screenScale float64 = 0.04 // Scales down the sprite
 
 func New(conf SimConf) (*Simulation, error) {
-	tps := ebiten.MaxTPS()
 	s := &Simulation{
 		Conf:  conf,
 		swarm: boids.New(conf.Swarm),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
 		},
-		screen:     vector.New(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
-		maxTPS:     tps,
-		tickUpdate: tps / conf.UpdatesPerSec,
+		screen: boids.NewVector(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
+		tick:   NewTicker(ebiten.MaxTPS(), conf.UpdatesPerSec),
 	}
 	s.Log("Loading assets..")
 
@@ -123,17 +117,10 @@ func New(conf SimConf) (*Simulation, error) {
 	return s, nil
 }
 
-func loadImg(p string) (image.Image, error) {
-	f, err := assets.Open(p)
-	if err != nil {
-		return nil, fmt.Errorf("could not open '%s': %s", p, err)
-	}
-	defer f.Close()
-	i, _, err := image.Decode(f)
-	if err != nil {
-		return nil, fmt.Errorf("could not decode '%s': %s", p, err)
-	}
-	return i, nil
+func (s *Simulation) draw(dst, src *ebiten.Image) {
+	dst.DrawImage(src, s.op)
+	s.op.ColorM.Reset()
+	s.op.GeoM.Reset()
 }
 
 func (s *Simulation) Log(msg string, args ...interface{}) {
@@ -173,10 +160,8 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 	return s.Conf.ScreenWidth, s.Conf.ScreenHeight
 }
 
-var (
-	zeroVec = vector.New(0, 0)
-	errQuit = errors.New("quit")
-)
+var zeroVec = boids.NewVector(0, 0)
+var errQuit = errors.New("quit")
 
 func (s *Simulation) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
@@ -185,61 +170,20 @@ func (s *Simulation) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
-	dirty := false
-	s.tick += 1.0
-	if s.tick%s.tickUpdate == 0 {
-		s.tick = 0
-		dirty = true
+	t := s.tick.Tick()
+	dirty := s.tick.Mod(1) == 0
+	if dirty {
 		cx, cy := ebiten.CursorPosition()
-		cur := vector.New(float64(cx), float64(cy))
+		cur := boids.NewVector(float64(cx), float64(cy))
 		if cur.Within(zeroVec, s.screen) {
 			s.target = cur
 		} else {
 			s.target = s.screen.Div(2)
 		}
 	}
+
 	s.swarm.Update(dirty, s.target)
 	return nil
-}
-
-const maxAngleN float64 = -math.Pi / 2
-const maxAngleNE float64 = -math.Pi / 4
-const maxAngleSE float64 = math.Pi / 4
-const maxAngleS float64 = math.Pi / 2
-
-func clampAngleAndFlip(a float64) (float64, bool) {
-	flipped := false
-	if a < maxAngleN {
-		a += math.Pi
-		flipped = true
-	} else if a > maxAngleS {
-		a -= math.Pi
-		flipped = true
-	}
-	if a > maxAngleN && a < maxAngleNE {
-		a = maxAngleNE
-	} else if a < maxAngleS && a > maxAngleSE {
-		a = maxAngleSE
-	}
-	return a, flipped
-}
-
-func rotateAndTranslate(pos vector.V, angle float64, src *ebiten.Image, op *ebiten.DrawImageOptions) {
-	w, h := float64(src.Bounds().Dx()), float64(src.Bounds().Dy())
-	a, flipped := clampAngleAndFlip(angle)
-	if flipped {
-		op.GeoM.Scale(-1, 1)
-		op.GeoM.Translate(w, 0)
-	}
-	op.GeoM.Translate(-w/2, -h/2)
-	op.GeoM.Rotate(a)
-	op.GeoM.Translate(pos.X, pos.Y)
-}
-
-func (s *Simulation) draw(dst, src *ebiten.Image) {
-	dst.DrawImage(src, s.op)
-	s.op.ColorM.Reset()
-	s.op.GeoM.Reset()
 }
 
 func (s *Simulation) Draw(screen *ebiten.Image) {
@@ -263,13 +207,12 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// DEBUG
 
 const rad2deg float64 = -180 / math.Pi
 
-var (
-	colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
-	colRed   = color.RGBA{0xff, 0x0, 0x0, 0x88}
-)
+var colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
+var colRed = color.RGBA{0xff, 0x0, 0x0, 0x88}
 
 func (s *Simulation) drawDebug(screen *ebiten.Image) {
 	leader := s.swarm.Boids[0]
@@ -316,4 +259,98 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 		leader.Vel, leader.Vel.Angle()*rad2deg,
 	)
 	ebitenutil.DebugPrint(screen, msg)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// UTILS
+
+func loadImg(p string) (image.Image, error) {
+	f, err := assets.Open(p)
+	if err != nil {
+		return nil, fmt.Errorf("could not open '%s': %s", p, err)
+	}
+	defer f.Close()
+	i, _, err := image.Decode(f)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode '%s': %s", p, err)
+	}
+	return i, nil
+}
+
+const maxAngleN float64 = -math.Pi / 2
+const maxAngleNE float64 = -math.Pi / 4
+const maxAngleSE float64 = math.Pi / 4
+const maxAngleS float64 = math.Pi / 2
+
+func clampAngleAndFlip(a float64) (float64, bool) {
+	flipped := false
+	if a < maxAngleN {
+		a += math.Pi
+		flipped = true
+	} else if a > maxAngleS {
+		a -= math.Pi
+		flipped = true
+	}
+	if a > maxAngleN && a < maxAngleNE {
+		a = maxAngleNE
+	} else if a < maxAngleS && a > maxAngleSE {
+		a = maxAngleSE
+	}
+	return a, flipped
+}
+
+func rotateAndTranslate(pos boids.Vector, angle float64, src *ebiten.Image, op *ebiten.DrawImageOptions) {
+	w, h := float64(src.Bounds().Dx()), float64(src.Bounds().Dy())
+	a, flipped := clampAngleAndFlip(angle)
+	if flipped {
+		op.GeoM.Scale(-1, 1)
+		op.GeoM.Translate(w, 0)
+	}
+	op.GeoM.Translate(-w/2, -h/2)
+	op.GeoM.Rotate(a)
+	op.GeoM.Translate(pos.X, pos.Y)
+}
+
+type Ticker struct {
+	period float64
+	rate   float64
+	tick   float64
+}
+
+func NewTicker(ticksPerSecond, updatesPerSecond int) *Ticker {
+	tps := float64(ticksPerSecond)
+	ups := float64(updatesPerSecond)
+	return &Ticker{
+		period: (tps / ups) / tps,
+		rate:   1.0 / tps,
+		tick:   0,
+	}
+}
+
+const tickerPrecision float64 = 1000
+
+func (t *Ticker) round(f float64) float64 {
+	return math.Round(f*tickerPrecision) / tickerPrecision
+}
+
+const reset float64 = 10
+
+func (t *Ticker) Tick() float64 {
+	t.tick += t.rate
+	if t.tick >= reset {
+		t.tick = 0
+	}
+	return t.tick
+}
+
+func (t *Ticker) Float64() float64 {
+	return t.tick
+}
+
+func (t *Ticker) Float32() float32 {
+	return float32(t.tick)
+}
+
+func (t *Ticker) Mod(f float64) float64 {
+	return math.Mod(t.round(t.tick/t.period), f)
 }

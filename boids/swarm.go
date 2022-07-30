@@ -3,8 +3,6 @@ package boids
 import (
 	"math/rand"
 	"sync"
-
-	"github.com/lmas/boids/vector"
 )
 
 type Conf struct {
@@ -40,8 +38,8 @@ func New(conf Conf) *Swarm {
 	for i := 0; i < conf.SwarmSize; i++ {
 		s.Boids[i] = &Boid{
 			ID:  i,
-			Pos: vector.New(rand.Float64()-0.5, rand.Float64()-0.5).Mul(10),
-			Vel: vector.New(0, 0),
+			Pos: NewVector(rand.Float64()-0.5, rand.Float64()-0.5).Mul(10),
+			Vel: NewVector(0, 0),
 		}
 	}
 
@@ -56,7 +54,7 @@ func New(conf Conf) *Swarm {
 
 // Update all Boids' velocity (dirty, slow) or position (non-dirty, fast).
 // It also updates the Boid neighbour index if dirty, before hand.
-func (s *Swarm) Update(dirty bool, target vector.V) {
+func (s *Swarm) Update(dirty bool, target Vector) {
 	// TODO: could allow multiple targets?
 	if dirty {
 		s.Index.Update(s.Boids)
@@ -74,7 +72,7 @@ func (s *Swarm) Update(dirty bool, target vector.V) {
 
 type workerSignal struct {
 	Dirty  bool
-	Target vector.V
+	Target Vector
 }
 
 func (s *Swarm) workerUpdate(boids []*Boid) {

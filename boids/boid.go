@@ -1,9 +1,5 @@
 package boids
 
-import (
-	"github.com/lmas/boids/vector"
-)
-
 // Boid represents a single boid.
 // It will try to fit in with a Swarm by:
 // - moving towards the center of nearby Boids (Cohesion).
@@ -13,20 +9,20 @@ import (
 // It can optionally move towards a target.
 type Boid struct {
 	ID  int
-	Pos vector.V
-	Vel vector.V
+	Pos Vector
+	Vel Vector
 }
 
-func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
+func (s *Swarm) updateBoid(b *Boid, dirty bool, target Vector) {
 	if !dirty {
 		b.Pos = b.Pos.Addv(b.Vel.Round())
 		return
 	}
 
 	num := 0.0
-	coh := vector.New(0, 0)
-	ali := vector.New(0, 0)
-	sep := vector.New(0, 0)
+	coh := NewVector(0, 0)
+	ali := NewVector(0, 0)
+	sep := NewVector(0, 0)
 	s.Index.IterNeighbours(b, func(id int) {
 		n := s.Boids[id]
 		num += 1
@@ -46,33 +42,33 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target vector.V) {
 
 const cohesionFactor float64 = 0.001
 
-func cohesion(b *Boid, coh vector.V, num float64) vector.V {
+func cohesion(b *Boid, coh Vector, num float64) Vector {
 	return coh.Div(num).Subv(b.Pos).Mul(cohesionFactor)
 }
 
 const alignmentFactor float64 = 0.05
 
-func alignment(b *Boid, ali vector.V, num float64) vector.V {
+func alignment(b *Boid, ali Vector, num float64) Vector {
 	return ali.Div(num).Subv(b.Vel).Mul(alignmentFactor)
 }
 
 const separationRange float64 = 20
 const separationFactor = 0.3
 
-func separation(b, n *Boid) vector.V {
+func separation(b, n *Boid) Vector {
 	diff := n.Pos.Subv(b.Pos)
 	dist := diff.Length()
 	if dist < separationRange {
 		return diff.Div(dist / separationFactor)
 	}
-	return vector.New(0, 0)
+	return NewVector(0, 0)
 }
 
 const targetRange float64 = 50
 const targetRepelFactor float64 = 0.3
 const targetAttractFactor float64 = 0.00004
 
-func centerTarget(b *Boid, target vector.V) vector.V {
+func centerTarget(b *Boid, target Vector) Vector {
 	diff := target.Subv(b.Pos)
 	dist := diff.Length()
 	if dist < targetRange {
@@ -84,7 +80,7 @@ func centerTarget(b *Boid, target vector.V) vector.V {
 const velMax float64 = 1
 const velMin float64 = 0.5
 
-func clampSpeed(b *Boid) vector.V {
+func clampSpeed(b *Boid) Vector {
 	l := b.Vel.Length()
 	switch {
 	case l > velMax:
