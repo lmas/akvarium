@@ -69,6 +69,8 @@ type Simulation struct {
 	boidImg *ebiten.Image
 	bgImg   *ebiten.Image
 	op      *ebiten.DrawImageOptions
+	sop     *ebiten.DrawRectShaderOptions
+	shader  *ebiten.Shader
 	swarm   *boids.Swarm
 	screen  boids.Vector
 	target  boids.Vector
@@ -77,6 +79,7 @@ type Simulation struct {
 
 //go:embed assets/bg.png
 //go:embed assets/boid.png
+//go:embed assets/shader.go
 var assets embed.FS
 
 const screenScale float64 = 0.04 // Scales down the sprite
@@ -94,6 +97,14 @@ func New(conf SimConf) (*Simulation, error) {
 		swarm: boids.New(conf.Swarm),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
+		},
+		sop: &ebiten.DrawRectShaderOptions{
+			Uniforms: map[string]interface{}{
+				"Resolution": []float32{
+					float32(conf.ScreenWidth),
+					float32(conf.ScreenHeight),
+				},
+			},
 		},
 		screen: boids.NewVector(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
 		tick:   NewTicker(ebiten.MaxTPS(), conf.UpdatesPerSec),
@@ -119,6 +130,15 @@ func New(conf SimConf) (*Simulation, error) {
 	s.boidImg = ebiten.NewImage(int(float64(w)*screenScale), int(float64(h)*screenScale))
 	s.op.GeoM.Scale(screenScale, screenScale)
 	s.draw(s.boidImg, si)
+
+	b, err := assets.ReadFile("assets/shader.go")
+	if err != nil {
+		return nil, err
+	}
+	s.shader, err = ebiten.NewShader(b)
+	if err != nil {
+		return nil, err
+	}
 
 	s.Log("Assets ready")
 	return s, nil
@@ -177,7 +197,7 @@ func (s *Simulation) Update() error {
 		ebiten.SetFullscreen(!ebiten.IsFullscreen())
 	}
 
-	t := s.tick.Tick()
+	s.tick.Tick()
 	dirty := s.tick.Mod(1) == 0
 	if dirty {
 		cx, cy := ebiten.CursorPosition()
@@ -188,7 +208,6 @@ func (s *Simulation) Update() error {
 			s.target = s.screen.Div(2)
 		}
 	}
-
 	s.swarm.Update(dirty, s.target)
 	return nil
 }
@@ -203,6 +222,8 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 
 	for _, b := range s.swarm.Boids {
 		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boidImg, s.op)
+		// TODO: this could probably be replaced with a shader and gain some draw performance
+		// https://ebiten.org/documents/performancetips.html#Make_similar_draw_function_calls_successive
 		if s.Conf.Pretty {
 			hue := -b.Pos.Y * 0.001
 			brightness := 1 - b.Pos.Y*0.001
@@ -210,6 +231,11 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 			s.op.ColorM.ChangeHSV(hue, brightness, scale)
 		}
 		s.draw(screen, s.boidImg)
+	}
+
+	if s.Conf.Pretty {
+		s.sop.Uniforms["Time"] = s.tick.Float32()
+		screen.DrawRectShader(s.Conf.ScreenWidth, s.Conf.ScreenHeight, s.shader, s.sop)
 	}
 }
 
@@ -340,7 +366,7 @@ func (t *Ticker) round(f float64) float64 {
 	return math.Round(f*tickerPrecision) / tickerPrecision
 }
 
-const reset float64 = 10
+const reset float64 = 10000
 
 func (t *Ticker) Tick() float64 {
 	t.tick += t.rate

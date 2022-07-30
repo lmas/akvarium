@@ -13,7 +13,7 @@ debug:
 
 .PHONY: test
 test:
-	go test -coverprofile="${COVER}" ./...
+	go test -coverprofile="${COVER}" $$(go list ./... | grep -v assets)
 
 .PHONY: cover
 cover:
@@ -38,7 +38,7 @@ showmem:
 
 .PHONY: lint
 lint:
-	golangci-lint run -E gosec -E gocritic ./...
+	golangci-lint run -E gosec -E gocritic --skip-dirs assets ./...
 
 .PHONY: clean
 clean:
