@@ -32,9 +32,9 @@ func main() {
 		ScreenHeight:  720,
 		UpdatesPerSec: 10,
 		Swarm: boids.Conf{
+			Boids:       500,
 			Seed:        0,
 			Workers:     10,
-			SwarmSize:   500,
 			IndexOffset: 50,
 		},
 	}
@@ -82,6 +82,13 @@ var assets embed.FS
 const screenScale float64 = 0.04 // Scales down the sprite
 
 func New(conf SimConf) (*Simulation, error) {
+	if conf.Swarm.Spawn[0].Length() == 0 && conf.Swarm.Spawn[1].Length() == 0 {
+		conf.Swarm.Spawn = [2]boids.Vector{
+			boids.NewVector(0, 0),
+			boids.NewVector(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
+		}
+	}
+
 	s := &Simulation{
 		Conf:  conf,
 		swarm: boids.New(conf.Swarm),

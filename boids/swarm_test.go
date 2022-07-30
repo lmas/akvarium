@@ -6,9 +6,13 @@ import (
 
 func BenchmarkBoids(b *testing.B) {
 	s := New(Conf{
-		Seed:      0,
-		Workers:   10,
-		SwarmSize: 500,
+		Boids: 500,
+		Spawn: [2]Vector{
+			NewVector(0, 0),
+			NewVector(100, 100),
+		},
+		Seed:    0,
+		Workers: 10,
 	})
 	v := NewVector(0, 0)
 	b.ResetTimer()
