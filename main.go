@@ -210,9 +210,13 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 	screen.Fill(colBG)
 	if s.Conf.Debug {
 		s.drawDebug(screen)
+	} else {
+		ebitenutil.DebugPrint(screen, fmt.Sprintf(" FPS %0.f", ebiten.CurrentFPS()))
 	}
 
 	for _, b := range s.swarm.Boids {
+		// It's faster to just try and draw ALL boids, instead of using cheeky logic
+		// checks to skip boids out of screen. Classic cpu vs. mem standoff.
 		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boidImg, s.op)
 		s.draw(screen, s.boidImg)
 	}
