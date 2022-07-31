@@ -23,10 +23,23 @@ var (
 const screenWidth int = 1280
 const screenHeight int = 720
 
+var errQuit = errors.New("quit")
+
+type shaderSim struct {
+	sprite   *ebiten.Image
+	op       *ebiten.DrawImageOptions
+	shader   *ebiten.Shader
+	sop      *ebiten.DrawRectShaderOptions
+	tickRate float64
+	tick     float64
+	dir      float64
+	pos      float64
+}
+
 func main() {
 	flag.Parse()
 
-	sim := &simulation{
+	sim := &shaderSim{
 		sprite: loadSprite("assets/boid.png"),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
@@ -53,6 +66,41 @@ func main() {
 			panic(err)
 		}
 	}
+}
+
+func (s *shaderSim) Layout(width, height int) (int, int) {
+	return screenWidth, screenHeight
+}
+
+func (s *shaderSim) Update() error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		return errQuit
+	} else if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		ebiten.SetFullscreen(!ebiten.IsFullscreen())
+	}
+	if s.dir == 0 {
+		s.dir = 1
+	}
+	s.pos += s.dir
+	if s.pos <= 0 {
+		s.dir = 1
+	} else if s.pos >= float64(screenHeight) {
+		s.dir = -1
+	}
+	s.tick += s.tickRate
+	return nil
+}
+
+var colBG = color.RGBA{0x04, 0x78, 0x9B, 0xFF}
+
+func (s *shaderSim) Draw(screen *ebiten.Image) {
+	screen.Fill(colBG)
+	s.op.GeoM.Translate(0, s.dir)
+	screen.DrawImage(s.sprite, s.op)
+	s.sop.Uniforms["Time"] = float32(s.tick)
+	screen.DrawRectShader(screenWidth, screenHeight, s.shader, s.sop)
+	msg := fmt.Sprintf("TPS: %0.1f  FPS: %0.1f  Tick: %0.1f", ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick)
+	ebitenutil.DebugPrint(screen, msg)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,56 +137,4 @@ func loadShader(p string) *ebiten.Shader {
 		panic(err)
 	}
 	return shader
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type simulation struct {
-	sprite   *ebiten.Image
-	op       *ebiten.DrawImageOptions
-	shader   *ebiten.Shader
-	sop      *ebiten.DrawRectShaderOptions
-	tickRate float64
-	tick     float64
-	dir      float64
-	pos      float64
-}
-
-func (s *simulation) Layout(width, height int) (int, int) {
-	return screenWidth, screenHeight
-}
-
-var errQuit = errors.New("quit")
-
-func (s *simulation) Update() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
-		return errQuit
-	} else if inpututil.IsKeyJustPressed(ebiten.KeyF) {
-		ebiten.SetFullscreen(!ebiten.IsFullscreen())
-	}
-
-	if s.dir == 0 {
-		s.dir = 1
-	}
-	s.pos += s.dir
-	if s.pos <= 0 {
-		s.dir = 1
-	} else if s.pos >= float64(screenHeight) {
-		s.dir = -1
-	}
-
-	s.tick += s.tickRate
-	return nil
-}
-
-var colBG = color.RGBA{0x04, 0x78, 0x9B, 0xFF}
-
-func (s *simulation) Draw(screen *ebiten.Image) {
-	screen.Fill(colBG)
-	s.op.GeoM.Translate(0, s.dir)
-	screen.DrawImage(s.sprite, s.op)
-	s.sop.Uniforms["Time"] = float32(s.tick)
-	screen.DrawRectShader(screenWidth, screenHeight, s.shader, s.sop)
-	msg := fmt.Sprintf("TPS: %0.1f  FPS: %0.1f  Tick: %0.1f", ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick)
-	ebitenutil.DebugPrint(screen, msg)
 }

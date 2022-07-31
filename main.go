@@ -22,10 +22,9 @@ import (
 )
 
 var (
-	flagDebug   = flag.Bool("debug", false, "Toggle debug info")
-	flagPretty  = flag.Bool("pretty", true, "Show pretty graphic effects")
-	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit")
 	flagInit    = flag.Int("init", 2000, "Run initial updates to prime the simulation")
+	flagVerbose = flag.Bool("verbose", false, "Toggle verbose info")
+	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit")
 )
 
 func main() {
@@ -35,8 +34,7 @@ func main() {
 	}
 
 	conf := SimConf{
-		Debug:         *flagDebug,
-		Pretty:        *flagPretty,
+		Verbose:       *flagVerbose,
 		ScreenWidth:   1280,
 		ScreenHeight:  720,
 		UpdatesPerSec: 10,
@@ -65,8 +63,7 @@ func main() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type SimConf struct {
-	Debug         bool
-	Pretty        bool
+	Verbose       bool
 	ScreenWidth   int
 	ScreenHeight  int
 	UpdatesPerSec int
@@ -136,7 +133,7 @@ func New(conf SimConf) (*Simulation, error) {
 }
 
 func (s *Simulation) Log(msg string, args ...interface{}) {
-	if s.Conf.Debug {
+	if s.Conf.Verbose {
 		log.Printf(msg+"\n", args...)
 	}
 }
@@ -204,9 +201,7 @@ var minVec = boids.NewVector(-1, -1)
 
 func (s *Simulation) Draw(screen *ebiten.Image) {
 	screen.Fill(colBG)
-	if s.Conf.Debug {
-		s.drawDebug(screen)
-	} else {
+	if s.Conf.Verbose {
 		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS %0.f", ebiten.CurrentFPS()))
 	}
 
@@ -217,57 +212,8 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 		s.op.GeoM.Reset()
 	})
 
-	if s.Conf.Pretty {
-		s.sop.Uniforms["Time"] = s.tick.Float32()
-		screen.DrawRectShader(s.Conf.ScreenWidth, s.Conf.ScreenHeight, s.shader, s.sop)
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// DEBUG
-
-const rad2deg float64 = -180 / math.Pi
-
-var colGreen = color.RGBA{0x0, 0xff, 0x0, 0x88}
-var colRed = color.RGBA{0xff, 0x0, 0x0, 0x88}
-
-func (s *Simulation) drawDebug(screen *ebiten.Image) {
-	leader := s.swarm.Boids[0]
-	k := s.swarm.Index.Key(leader)
-	r := float64(s.Conf.Swarm.IndexOffset)
-
-	// Shows bins around leader
-	for i := -1; i < 2; i++ {
-		for j := -1; j < 2; j++ {
-			x := float64(k[0]+i) * r
-			y := float64(k[1]+j) * r
-			ebitenutil.DrawRect(screen, x, y, r, r, colGreen)
-			ebitenutil.DrawLine(screen, x, y, x+r, y, colGreen)
-			ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
-		}
-	}
-
-	// Show lines connecting leader with it's neighbours
-	s.swarm.Index.IterNeighbours(leader, func(id int) {
-		n := s.swarm.Boids[id]
-		ebitenutil.DrawLine(screen, leader.Pos.X, leader.Pos.Y, n.Pos.X, n.Pos.Y, colGreen)
-	})
-
-	// Shows leader pos
-	l := leader.Pos.Sub(r / 2)
-	ebitenutil.DrawRect(screen, l.X, l.Y, r, r, colRed)
-
-	// Shows target pos
-	t := s.target.Sub(r / 2)
-	ebitenutil.DrawRect(screen, t.X, t.Y, r, r, colRed)
-
-	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n",
-		ebiten.CurrentTPS(), ebiten.CurrentFPS(),
-		s.target.X, s.target.Y,
-		leader.Pos.X, leader.Pos.Y,
-		leader.Vel, leader.Vel.Angle()*rad2deg,
-	)
-	ebitenutil.DebugPrint(screen, msg)
+	s.sop.Uniforms["Time"] = s.tick.Float32()
+	screen.DrawRectShader(s.Conf.ScreenWidth, s.Conf.ScreenHeight, s.shader, s.sop)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,12 +232,18 @@ func profileSim(cpu, mem string, sleep int) {
 	defer func() {
 		c.Close()
 		runtime.GC()
-		pprof.WriteHeapProfile(m)
+		err = pprof.WriteHeapProfile(m)
+		if err != nil {
+			fmt.Println(err)
+		}
 		m.Close()
 		os.Exit(0)
 	}()
 
-	pprof.StartCPUProfile(c)
+	err = pprof.StartCPUProfile(c)
+	if err != nil {
+		panic(err)
+	}
 	time.Sleep(time.Duration(sleep) * time.Second)
 	pprof.StopCPUProfile()
 }

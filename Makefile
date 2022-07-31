@@ -5,15 +5,11 @@ MEM=.stats/mem
 
 .PHONY: run
 run:
-	go run main.go
-
-.PHONY: debug
-debug:
-	go run main.go -debug=true -pretty=false -init=0
+	go run main.go -verbose
 
 .PHONY: test
 test:
-	go test -coverprofile="${COVER}" $$(go list ./... | grep -v assets)
+	go test -coverprofile="${COVER}" $$(go list ./... | grep -v assets | grep -v tools)
 
 .PHONY: cover
 cover:
@@ -38,7 +34,7 @@ showmem:
 
 .PHONY: lint
 lint:
-	golangci-lint run -E gosec -E gocritic --skip-dirs assets ./...
+	golangci-lint run -E gosec -E gocritic --skip-dirs="(assets|tools)" ./...
 
 .PHONY: clean
 clean:
