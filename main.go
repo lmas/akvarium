@@ -82,8 +82,6 @@ type Simulation struct {
 //go:embed assets/shader.go
 var assets embed.FS
 
-const screenScale float64 = 0.04 // Scales down the sprite
-
 func New(conf SimConf) (*Simulation, error) {
 	if conf.Swarm.Spawn[0].Length() == 0 && conf.Swarm.Spawn[1].Length() == 0 {
 		conf.Swarm.Spawn = [2]boids.Vector{
@@ -125,11 +123,7 @@ func New(conf SimConf) (*Simulation, error) {
 	if err != nil {
 		return nil, err
 	}
-	si := ebiten.NewImageFromImage(sprite)
-	w, h = si.Size()
-	s.boidImg = ebiten.NewImage(int(float64(w)*screenScale), int(float64(h)*screenScale))
-	s.op.GeoM.Scale(screenScale, screenScale)
-	s.draw(s.boidImg, si)
+	s.boidImg = ebiten.NewImageFromImage(sprite)
 
 	b, err := assets.ReadFile("assets/shader.go")
 	if err != nil {
