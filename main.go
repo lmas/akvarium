@@ -74,15 +74,15 @@ type SimConf struct {
 }
 
 type Simulation struct {
-	Conf    SimConf
-	boidImg *ebiten.Image
-	op      *ebiten.DrawImageOptions
-	sop     *ebiten.DrawRectShaderOptions
-	shader  *ebiten.Shader
-	swarm   *boids.Swarm
-	screen  boids.Vector
-	target  boids.Vector
-	tick    *Ticker
+	Conf   SimConf
+	boid   *ebiten.Image
+	op     *ebiten.DrawImageOptions
+	sop    *ebiten.DrawRectShaderOptions
+	shader *ebiten.Shader
+	swarm  *boids.Swarm
+	screen boids.Vector
+	target boids.Vector
+	tick   *Ticker
 }
 
 //go:embed assets/boid.png
@@ -120,7 +120,7 @@ func New(conf SimConf) (*Simulation, error) {
 	if err != nil {
 		return nil, err
 	}
-	s.boidImg = ebiten.NewImageFromImage(sprite)
+	s.boid = ebiten.NewImageFromImage(sprite)
 
 	b, err := assets.ReadFile("assets/shader.go")
 	if err != nil {
@@ -133,12 +133,6 @@ func New(conf SimConf) (*Simulation, error) {
 
 	s.Log("Assets ready")
 	return s, nil
-}
-
-func (s *Simulation) draw(dst, src *ebiten.Image) {
-	dst.DrawImage(src, s.op)
-	s.op.ColorM.Reset()
-	s.op.GeoM.Reset()
 }
 
 func (s *Simulation) Log(msg string, args ...interface{}) {
@@ -178,7 +172,6 @@ func (s *Simulation) Layout(width, height int) (int, int) {
 	return s.Conf.ScreenWidth, s.Conf.ScreenHeight
 }
 
-var zeroVec = boids.NewVector(0, 0)
 var errQuit = errors.New("quit")
 
 func (s *Simulation) Update() error {
@@ -193,7 +186,7 @@ func (s *Simulation) Update() error {
 	if dirty {
 		cx, cy := ebiten.CursorPosition()
 		cur := boids.NewVector(float64(cx), float64(cy))
-		if cur.Within(zeroVec, s.screen) {
+		if cur.Within(minVec, s.screen) {
 			s.target = cur
 		} else {
 			s.target = s.screen.Div(2)
@@ -206,20 +199,23 @@ func (s *Simulation) Update() error {
 // https://www.color-name.com/light-ocean-blue.color
 var colBG = color.RGBA{0x04, 0x78, 0x9B, 0xFF}
 
+// This prevents pop-in of boids at the top of the screen.
+var minVec = boids.NewVector(-1, -1)
+
 func (s *Simulation) Draw(screen *ebiten.Image) {
 	screen.Fill(colBG)
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	} else {
-		ebitenutil.DebugPrint(screen, fmt.Sprintf(" FPS %0.f", ebiten.CurrentFPS()))
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("FPS %0.f", ebiten.CurrentFPS()))
 	}
 
-	for _, b := range s.swarm.Boids {
-		// It's faster to just try and draw ALL boids, instead of using cheeky logic
-		// checks to skip boids out of screen. Classic cpu vs. mem standoff.
-		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boidImg, s.op)
-		s.draw(screen, s.boidImg)
-	}
+	s.swarm.Index.IterBounds(minVec, s.screen, func(n int) {
+		b := s.swarm.Boids[n]
+		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boid, s.op)
+		screen.DrawImage(s.boid, s.op)
+		s.op.GeoM.Reset()
+	})
 
 	if s.Conf.Pretty {
 		s.sop.Uniforms["Time"] = s.tick.Float32()
@@ -250,14 +246,6 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 			ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
 		}
 	}
-
-	// Shows all bins
-	s.swarm.Index.IterBins(func(bin boids.IndexKey) {
-		x, y := float64(bin[0])*r, float64(bin[1])*r
-		ebitenutil.DrawRect(screen, x, y, r, r, colGreen)
-		ebitenutil.DrawLine(screen, x, y, x+r, y, colGreen)
-		ebitenutil.DrawLine(screen, x, y, x, y+r, colGreen)
-	})
 
 	// Show lines connecting leader with it's neighbours
 	s.swarm.Index.IterNeighbours(leader, func(id int) {
@@ -344,7 +332,8 @@ func clampAngleAndFlip(a float64) (float64, bool) {
 }
 
 func rotateAndTranslate(pos boids.Vector, angle float64, src *ebiten.Image, op *ebiten.DrawImageOptions) {
-	w, h := float64(src.Bounds().Dx()), float64(src.Bounds().Dy())
+	x, y := src.Size()
+	w, h := float64(x), float64(y)
 	a, flipped := clampAngleAndFlip(angle)
 	if flipped {
 		op.GeoM.Scale(-1, 1)

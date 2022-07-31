@@ -42,10 +42,15 @@ func (i *Index) Update(boids []*Boid) {
 	}
 }
 
-// IterBins iterates over all available neighbouring bins with Boids inside.
-func (i *Index) IterBins(fun func(IndexKey)) {
-	for b := range i.idx {
-		fun(b)
+func (i *Index) IterBounds(min, max Vector, fun func(int)) {
+	a, b, c, d := int(min.X), int(min.Y), int(max.X/i.offset), int(max.Y/i.offset)
+	for k := range i.idx {
+		if k[0] < a || k[1] < b || k[0] > c || k[1] > d {
+			continue
+		}
+		for _, n := range i.idx[k] {
+			fun(n)
+		}
 	}
 }
 
