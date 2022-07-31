@@ -1,5 +1,10 @@
 package main
 
+// Underwater shader.
+// Writing shaders for ebiten is a little bit special, because of it's custom shader
+// language called `Kage`, that looks like go and only allows for fragment shaders.
+// https://ebiten.org/documents/shader.html
+
 var Time float
 var Resolution vec2
 
@@ -27,9 +32,15 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		texCoord, vec2(Resolution.x*0.8, Resolution.y*-0.6), normalize(vec2(1.0, -0.0596)), 21.4852, 17.9246, 1.5,
 	) * 0.5
 
-	// Emulate light loss towards the depths.
-	brightness := 0.8
-	fragColor *= (1.0 - (texCoord.y / Resolution.y)) * brightness
+	// Emulate light attenuation towards the depths, for the sun rays.
+	// https://en.wikipedia.org/wiki/Attenuation
+	bottomDepth := 100.0
+	fragColor *= (1 - smoothstep(0, Resolution.y-bottomDepth, texCoord.y)) * 0.7
+
+	// Apply smooth darkness towards the depths for whole screen
+	// https://en.wikipedia.org/wiki/Smoothstep
+	// TODO: could add a little "waving" to the bottom?
+	fragColor += vec4(0, 0, 0, 1) * smoothstep(0, Resolution.y+bottomDepth, texCoord.y)
 
 	return fragColor
 }

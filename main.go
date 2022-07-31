@@ -67,7 +67,6 @@ type SimConf struct {
 type Simulation struct {
 	Conf    SimConf
 	boidImg *ebiten.Image
-	bgImg   *ebiten.Image
 	op      *ebiten.DrawImageOptions
 	sop     *ebiten.DrawRectShaderOptions
 	shader  *ebiten.Shader
@@ -77,7 +76,6 @@ type Simulation struct {
 	tick    *Ticker
 }
 
-//go:embed assets/bg.png
 //go:embed assets/boid.png
 //go:embed assets/shader.go
 var assets embed.FS
@@ -108,16 +106,6 @@ func New(conf SimConf) (*Simulation, error) {
 		tick:   NewTicker(ebiten.MaxTPS(), conf.UpdatesPerSec),
 	}
 	s.Log("Loading assets..")
-
-	bg, err := loadImg("assets/bg.png")
-	if err != nil {
-		return nil, err
-	}
-	bgi := ebiten.NewImageFromImage(bg)
-	w, h := bgi.Size()
-	s.bgImg = ebiten.NewImage(conf.ScreenWidth, conf.ScreenHeight)
-	s.op.GeoM.Scale(s.screen.X/float64(w), s.screen.Y/float64(h))
-	s.draw(s.bgImg, bgi)
 
 	sprite, err := loadImg("assets/boid.png")
 	if err != nil {
@@ -206,24 +194,17 @@ func (s *Simulation) Update() error {
 	return nil
 }
 
+// https://www.color-name.com/light-ocean-blue.color
+var colBG = color.RGBA{0x04, 0x78, 0x9B, 0xFF}
+
 func (s *Simulation) Draw(screen *ebiten.Image) {
-	if s.Conf.Pretty {
-		s.draw(screen, s.bgImg)
-	}
+	screen.Fill(colBG)
 	if s.Conf.Debug {
 		s.drawDebug(screen)
 	}
 
 	for _, b := range s.swarm.Boids {
 		rotateAndTranslate(b.Pos, b.Vel.Angle(), s.boidImg, s.op)
-		// TODO: this could probably be replaced with a shader and gain some draw performance
-		// https://ebiten.org/documents/performancetips.html#Make_similar_draw_function_calls_successive
-		if s.Conf.Pretty {
-			hue := -b.Pos.Y * 0.001
-			brightness := 1 - b.Pos.Y*0.001
-			scale := 1 - b.Pos.Y*0.0013
-			s.op.ColorM.ChangeHSV(hue, brightness, scale)
-		}
 		s.draw(screen, s.boidImg)
 	}
 
