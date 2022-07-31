@@ -10,6 +10,10 @@ import (
 	_ "image/png"
 	"log"
 	"math"
+	"os"
+	"runtime"
+	"runtime/pprof"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -18,13 +22,18 @@ import (
 )
 
 var (
-	flagDebug  = flag.Bool("debug", false, "Toggle debug info")
-	flagPretty = flag.Bool("pretty", true, "Show pretty graphic effects")
-	flagInit   = flag.Int("init", 2000, "Run initial updates to prime the simulation")
+	flagDebug   = flag.Bool("debug", false, "Toggle debug info")
+	flagPretty  = flag.Bool("pretty", true, "Show pretty graphic effects")
+	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit")
+	flagInit    = flag.Int("init", 2000, "Run initial updates to prime the simulation")
 )
 
 func main() {
 	flag.Parse()
+	if *flagProfile {
+		go profileSim(".stats/cpu", ".stats/mem", 10)
+	}
+
 	conf := SimConf{
 		Debug:         *flagDebug,
 		Pretty:        *flagPretty,
@@ -271,6 +280,29 @@ func (s *Simulation) drawDebug(screen *ebiten.Image) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // UTILS
+
+func profileSim(cpu, mem string, sleep int) {
+	c, err := os.Create(cpu)
+	if err != nil {
+		panic(err)
+	}
+	m, err := os.Create(mem)
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		c.Close()
+		runtime.GC()
+		pprof.WriteHeapProfile(m)
+		m.Close()
+		os.Exit(0)
+	}()
+
+	pprof.StartCPUProfile(c)
+	time.Sleep(time.Duration(sleep) * time.Second)
+	pprof.StopCPUProfile()
+}
 
 func loadImg(p string) (image.Image, error) {
 	f, err := assets.Open(p)
