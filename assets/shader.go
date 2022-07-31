@@ -34,13 +34,12 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 
 	// Emulate light attenuation towards the depths, for the sun rays.
 	// https://en.wikipedia.org/wiki/Attenuation
-	bottomDepth := 100.0
-	fragColor *= (1 - smoothstep(0, Resolution.y-bottomDepth, texCoord.y)) * 0.7
+	fragColor *= (1 - smoothstep(0, Resolution.y, texCoord.y)) * 0.7
 
 	// Apply smooth darkness towards the depths for whole screen
 	// https://en.wikipedia.org/wiki/Smoothstep
 	// TODO: could add a little "waving" to the bottom?
-	fragColor += vec4(0, 0, 0, 1) * smoothstep(0, Resolution.y+bottomDepth, texCoord.y)
+	fragColor += vec4(0, 0, 0, 1) * smoothstep(0, Resolution.y, texCoord.y)
 
 	return fragColor
 }
