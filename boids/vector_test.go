@@ -1,15 +1,14 @@
 package boids
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
 
-func assertFloat(t *testing.T, got, expected float64) {
-	if got != expected {
-		t.Errorf("got float %v, expected %v", got, expected)
-	}
-}
+const pi float64 = math.Pi
+
+var piv = NewVector(math.Pi, math.Pi)
 
 func assertVector(t *testing.T, v Vector, x, y float64) {
 	if v.X != x || v.Y != y {
@@ -18,49 +17,93 @@ func assertVector(t *testing.T, v Vector, x, y float64) {
 }
 
 func TestSimpleOperations(t *testing.T) {
-	v := NewVector(0, 0)
-	t.Run("new is zero", func(t *testing.T) {
+	t.Run("angle", func(t *testing.T) {
+		f := piv.Angle()
+		e := math.Atan2(pi, pi)
+		if f != e {
+			t.Errorf("got angle %f, expected %f", f, e)
+		}
+	})
+	t.Run("dot product", func(t *testing.T) {
+		f := piv.Dot(piv)
+		e := pi*pi + pi*pi
+		if f != e {
+			t.Errorf("got dot product %f, expected %f", f, e)
+		}
+	})
+	t.Run("vector length", func(t *testing.T) {
+		f := piv.Length()
+		e := math.Sqrt(pi*pi + pi*pi)
+		if f != e {
+			t.Errorf("got vector length %f, expected %f", f, e)
+		}
+	})
+	t.Run("within", func(t *testing.T) {
+		min := NewVector(0, 0)
+		assertVector(t, min, 0, 0)
+		max := NewVector(pi, pi)
+		assertVector(t, max, pi, pi)
+		b := piv.Within(min, max)
+		e := true
+		if b != e {
+			t.Errorf("got vector within '%v', expected '%v'", b, e)
+		}
+	})
+	t.Run("string", func(t *testing.T) {
+		s := piv.String()
+		e := fmt.Sprintf("(%+0.3f, %+0.3f)", pi, pi)
+		if s != e {
+			t.Errorf("got vector string '%s', expected '%s'", s, e)
+		}
+	})
+	t.Run("round", func(t *testing.T) {
+		assertVector(t, piv, pi, pi)
+		v := piv.Round()
+		e := 3.141593
+		assertVector(t, v, e, e)
+	})
+	t.Run("float arithmetic", func(t *testing.T) {
+		v := NewVector(0, 0)
+		assertVector(t, v, 0, 0)
+		v = v.Add(pi)
+		assertVector(t, v, pi, pi)
+		v = v.Mul(pi)
+		assertVector(t, v, pi*pi, pi*pi)
+		v = v.Div(pi)
+		assertVector(t, v, pi, pi)
+		v = v.Sub(pi)
 		assertVector(t, v, 0, 0)
 	})
-	t.Run("get angle", func(t *testing.T) {
-		f := math.Atan2(3.3, 3.3)
-		assertFloat(t, v.Add(3.3).Angle(), f)
+	t.Run("vector arithmetic", func(t *testing.T) {
+		v := NewVector(0, 0)
+		assertVector(t, v, 0, 0)
+		v = v.Addv(piv)
+		assertVector(t, v, pi, pi)
+		v = v.Mulv(piv)
+		assertVector(t, v, pi*pi, pi*pi)
+		v = v.Divv(piv)
+		assertVector(t, v, pi, pi)
+		v = v.Subv(piv)
+		assertVector(t, v, 0, 0)
 	})
-	t.Run("get length", func(t *testing.T) {
-		f := math.Sqrt(math.Pow(3.3, 2) + math.Pow(3.3, 2))
-		assertFloat(t, v.Add(3.3).Length(), f)
-	})
-	t.Run("do round", func(t *testing.T) {
-		assertVector(t, v.Add(math.Sqrt(3.3*3.3)).Round(), 3.3, 3.3)
-	})
-	t.Run("add float", func(t *testing.T) {
-		assertVector(t, v.Add(3.3), 3.3, 3.3)
-	})
-	t.Run("sub float", func(t *testing.T) {
-		assertVector(t, v.Sub(3.3), -3.3, -3.3)
-	})
-	t.Run("mul float", func(t *testing.T) {
-		assertVector(t, v.Add(1).Mul(3.3), 3.3, 3.3)
-	})
-	t.Run("div float", func(t *testing.T) {
-		f := float64(1 / 3.3)
-		assertVector(t, v.Add(1).Div(3.3), f, f)
-	})
-	t.Run("add vector", func(t *testing.T) {
-		assertVector(t, v.Addv(NewVector(3.3, 3.3)), 3.3, 3.3)
-	})
-	t.Run("sub vector", func(t *testing.T) {
-		assertVector(t, v.Subv(NewVector(3.3, 3.3)), -3.3, -3.3)
-	})
-	t.Run("mul vector", func(t *testing.T) {
-		assertVector(t, v.Add(1).Mulv(NewVector(3.3, 3.3)), 3.3, 3.3)
-	})
-	t.Run("div vector", func(t *testing.T) {
-		f := float64(1 / 3.3)
-		assertVector(t, v.Add(1).Divv(NewVector(3.3, 3.3)), f, f)
-	})
-	t.Run("chain multiple operations", func(t *testing.T) {
-		v = v.Add(4.4).Sub(1.1).Mul(2.2).Div(2.2).Round()
-		assertVector(t, v, 3.3, 3.3)
-	})
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func BenchmarkVectors(b *testing.B) {
+	test := NewVector(0, 0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		test = test.Add(pi)
+		test = test.Mul(pi)
+		test = test.Div(pi)
+		test = test.Sub(pi)
+
+		test = test.Addv(piv)
+		test = test.Mulv(piv)
+		test = test.Divv(piv)
+		test = test.Subv(piv)
+
+		test.Round()
+	}
 }

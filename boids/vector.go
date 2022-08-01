@@ -14,10 +14,6 @@ func NewVector(x, y float64) Vector {
 	return Vector{x, y}
 }
 
-func (v Vector) String() string {
-	return fmt.Sprintf("(%+0.3f, %+0.3f)", v.X, v.Y)
-}
-
 // Calculates the vector angle and returns radians.
 // To get degrees: multiply radians with 180/Pi
 func (v Vector) Angle() float64 {
@@ -42,12 +38,16 @@ func (v Vector) Within(min, max Vector) bool {
 	return v.X >= min.X && v.Y >= min.Y && v.X <= max.X && v.Y <= max.Y
 }
 
-const vectorPrecision int = 6
+func (v Vector) String() string {
+	return fmt.Sprintf("(%+0.3f, %+0.3f)", v.X, v.Y)
+}
+
+// 6 decimal digits
+const vectorPrecision float64 = 1000000
 
 func (v Vector) Round() Vector {
-	output := math.Pow(10, float64(vectorPrecision))
-	v.X = math.Round(v.X*output) / output
-	v.Y = math.Round(v.Y*output) / output
+	v.X = math.Round(v.X*vectorPrecision) / vectorPrecision
+	v.Y = math.Round(v.Y*vectorPrecision) / vectorPrecision
 	return v
 }
 
