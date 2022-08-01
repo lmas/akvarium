@@ -10,15 +10,12 @@ import (
 	_ "image/png"
 	"log"
 	"math"
-	"os"
-	"runtime"
-	"runtime/pprof"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/lmas/boids/boids"
+	"github.com/lmas/boids/utils"
 )
 
 var (
@@ -30,7 +27,7 @@ var (
 func main() {
 	flag.Parse()
 	if *flagProfile {
-		go profileSim(".stats/cpu", ".stats/mem", 10)
+		go utils.RunProfiler(".stats/cpu", ".stats/mem", 10)
 	}
 
 	conf := SimConf{
@@ -79,7 +76,7 @@ type Simulation struct {
 	swarm  *boids.Swarm
 	screen boids.Vector
 	target boids.Vector
-	tick   *Ticker
+	tick   *utils.Ticker
 }
 
 //go:embed assets/boid.png
@@ -109,7 +106,7 @@ func New(conf SimConf) (*Simulation, error) {
 			},
 		},
 		screen: boids.NewVector(float64(conf.ScreenWidth), float64(conf.ScreenHeight)),
-		tick:   NewTicker(ebiten.MaxTPS(), conf.UpdatesPerSec),
+		tick:   utils.NewTicker(ebiten.MaxTPS(), conf.UpdatesPerSec),
 	}
 	s.Log("Loading assets..")
 
@@ -219,35 +216,6 @@ func (s *Simulation) Draw(screen *ebiten.Image) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // UTILS
 
-func profileSim(cpu, mem string, sleep int) {
-	c, err := os.Create(cpu)
-	if err != nil {
-		panic(err)
-	}
-	m, err := os.Create(mem)
-	if err != nil {
-		panic(err)
-	}
-
-	defer func() {
-		c.Close()
-		runtime.GC()
-		err = pprof.WriteHeapProfile(m)
-		if err != nil {
-			fmt.Println(err)
-		}
-		m.Close()
-		os.Exit(0)
-	}()
-
-	err = pprof.StartCPUProfile(c)
-	if err != nil {
-		panic(err)
-	}
-	time.Sleep(time.Duration(sleep) * time.Second)
-	pprof.StopCPUProfile()
-}
-
 func loadImg(p string) (image.Image, error) {
 	f, err := assets.Open(p)
 	if err != nil {
@@ -294,48 +262,4 @@ func rotateAndTranslate(pos boids.Vector, angle float64, src *ebiten.Image, op *
 	op.GeoM.Translate(-w/2, -h/2)
 	op.GeoM.Rotate(a)
 	op.GeoM.Translate(pos.X, pos.Y)
-}
-
-type Ticker struct {
-	period float64
-	rate   float64
-	tick   float64
-}
-
-func NewTicker(ticksPerSecond, updatesPerSecond int) *Ticker {
-	tps := float64(ticksPerSecond)
-	ups := float64(updatesPerSecond)
-	return &Ticker{
-		period: (tps / ups) / tps,
-		rate:   1.0 / tps,
-		tick:   0,
-	}
-}
-
-const tickerPrecision float64 = 1000
-
-func (t *Ticker) round(f float64) float64 {
-	return math.Round(f*tickerPrecision) / tickerPrecision
-}
-
-const reset float64 = 10000
-
-func (t *Ticker) Tick() float64 {
-	t.tick += t.rate
-	if t.tick >= reset {
-		t.tick = 0
-	}
-	return t.tick
-}
-
-func (t *Ticker) Float64() float64 {
-	return t.tick
-}
-
-func (t *Ticker) Float32() float32 {
-	return float32(t.tick)
-}
-
-func (t *Ticker) Mod(f float64) float64 {
-	return math.Mod(t.round(t.tick/t.period), f)
 }

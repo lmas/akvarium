@@ -1,18 +1,20 @@
 package main
 
+// This tool let's you try out the boid simulation quickly.
+
 import (
 	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	_ "image/png"
-	"math"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/lmas/boids/boids"
+	"github.com/lmas/boids/utils"
 )
 
 const screenWidth int = 1280
@@ -31,30 +33,20 @@ var conf = boids.Conf{
 }
 
 type debugSim struct {
-	swarm      *boids.Swarm
-	sprite     *ebiten.Image
-	op         *ebiten.DrawImageOptions
-	target     boids.Vector
-	tick       float64
-	tickRate   float64
-	tickPeriod float64
-}
-
-const preci float64 = 1000
-
-func round(f float64) float64 {
-	return math.Round(f*preci) / preci
+	swarm  *boids.Swarm
+	sprite *ebiten.Image
+	op     *ebiten.DrawImageOptions
+	target boids.Vector
+	tick   *utils.Ticker
 }
 
 func main() {
-	tps := float64(ebiten.MaxTPS())
 	s := &debugSim{
 		swarm: boids.New(conf),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
 		},
-		tickRate:   1.0 / tps,
-		tickPeriod: (tps / 10) / tps,
+		tick: utils.NewTicker(ebiten.MaxTPS(), 10),
 	}
 
 	f, err := os.Open("assets/boid.png")
@@ -85,11 +77,8 @@ func (s *debugSim) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyQ) {
 		return errQuit
 	}
-	s.tick += s.tickRate
-	if s.tick > 100 {
-		s.tick = 0
-	}
-	dirty := math.Mod(round(s.tick/s.tickPeriod), 1) == 0
+	s.tick.Tick()
+	dirty := s.tick.Mod(1) == 0
 	if dirty {
 		cx, cy := ebiten.CursorPosition()
 		cur := boids.NewVector(float64(cx), float64(cy))
@@ -144,7 +133,7 @@ func (s *debugSim) Draw(screen *ebiten.Image) {
 	})
 
 	msg := fmt.Sprintf("TPS: %0.f  FPS: %0.f  Tick: %0.1f  Target: %0.f,%0.f  Leader: %3.0f,%3.0f  %s  %+0.1f°\n",
-		ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick,
+		ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick.Float64(),
 		s.target.X, s.target.Y,
 		leader.Pos.X, leader.Pos.Y,
 		leader.Vel, leader.Vel.Angle(),

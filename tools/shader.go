@@ -14,6 +14,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/lmas/boids/utils"
 )
 
 var (
@@ -26,14 +27,13 @@ const screenHeight int = 720
 var errQuit = errors.New("quit")
 
 type shaderSim struct {
-	sprite   *ebiten.Image
-	op       *ebiten.DrawImageOptions
-	shader   *ebiten.Shader
-	sop      *ebiten.DrawRectShaderOptions
-	tickRate float64
-	tick     float64
-	dir      float64
-	pos      float64
+	sprite *ebiten.Image
+	op     *ebiten.DrawImageOptions
+	shader *ebiten.Shader
+	sop    *ebiten.DrawRectShaderOptions
+	tick   *utils.Ticker
+	dir    float64
+	pos    float64
 }
 
 func main() {
@@ -53,7 +53,7 @@ func main() {
 				},
 			},
 		},
-		tickRate: 1.0 / float64(ebiten.MaxTPS()),
+		tick: utils.NewTicker(ebiten.MaxTPS(), 10),
 	}
 	w, h := sim.sprite.Size()
 	sim.op.GeoM.Translate(float64(screenWidth)/2, 0)
@@ -87,7 +87,7 @@ func (s *shaderSim) Update() error {
 	} else if s.pos >= float64(screenHeight) {
 		s.dir = -1
 	}
-	s.tick += s.tickRate
+	s.tick.Tick()
 	return nil
 }
 
@@ -97,9 +97,9 @@ func (s *shaderSim) Draw(screen *ebiten.Image) {
 	screen.Fill(colBG)
 	s.op.GeoM.Translate(0, s.dir)
 	screen.DrawImage(s.sprite, s.op)
-	s.sop.Uniforms["Time"] = float32(s.tick)
+	s.sop.Uniforms["Time"] = s.tick.Float32()
 	screen.DrawRectShader(screenWidth, screenHeight, s.shader, s.sop)
-	msg := fmt.Sprintf("TPS: %0.1f  FPS: %0.1f  Tick: %0.1f", ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick)
+	msg := fmt.Sprintf("TPS: %0.1f  FPS: %0.1f  Tick: %0.1f", ebiten.CurrentTPS(), ebiten.CurrentFPS(), s.tick.Float64())
 	ebitenutil.DebugPrint(screen, msg)
 }
 
