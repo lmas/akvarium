@@ -26,10 +26,6 @@ var (
 
 func main() {
 	flag.Parse()
-	if *flagProfile {
-		go utils.RunProfiler(".stats/cpu", ".stats/mem", 10)
-	}
-
 	conf := SimConf{
 		Verbose:       *flagVerbose,
 		ScreenWidth:   1280,
@@ -43,12 +39,16 @@ func main() {
 		},
 	}
 
+	if *flagProfile {
+		go utils.RunProfiler(".stats/cpu", ".stats/mem", 30)
+	}
+
 	s, err := New(conf)
 	if err != nil {
 		panic(err)
 	}
 
-	if *flagInit > 0 {
+	if !*flagProfile && *flagInit > 0 {
 		s.Init(*flagInit)
 	}
 

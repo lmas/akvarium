@@ -15,14 +15,17 @@ test:
 cover:
 	go tool cover -html="${COVER}" -o="${COVER_HTML}"
 
-.PHONY: bench
-bench:
-	go test -bench=. -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./boids
+.PHONY: benchboids
+benchboids:
+	go test -bench="Boids" -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./boids
+	go tool pprof -top "${CPU}"
 	rm boids.test
 
-.PHONY: profile
-profile: bench
+.PHONY: benchvectors
+benchvectors:
+	go test -bench="Vectors" -benchtime=5s -benchmem -cpuprofile="${CPU}" -memprofile="${MEM}" ./boids
 	go tool pprof -top "${CPU}"
+	rm boids.test
 
 .PHONY: showcpu
 showcpu:
