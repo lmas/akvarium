@@ -49,7 +49,7 @@ func main() {
 		tick: utils.NewTicker(ebiten.MaxTPS(), 10),
 	}
 
-	f, err := os.Open("assets/boid.png")
+	f, err := os.Open("assets/boid-clownfish.png")
 	if err != nil {
 		panic(err)
 	}

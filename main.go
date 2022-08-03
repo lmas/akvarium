@@ -79,7 +79,7 @@ type Simulation struct {
 	tick   *utils.Ticker
 }
 
-//go:embed assets/boid.png
+//go:embed assets/boid-clownfish.png
 //go:embed assets/shader.go
 var assets embed.FS
 
@@ -110,7 +110,7 @@ func New(conf SimConf) (*Simulation, error) {
 	}
 	s.Log("Loading assets..")
 
-	sprite, err := loadImg("assets/boid.png")
+	sprite, err := loadImg("assets/boid-clownfish.png")
 	if err != nil {
 		return nil, err
 	}

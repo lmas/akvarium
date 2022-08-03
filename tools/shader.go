@@ -40,7 +40,7 @@ func main() {
 	flag.Parse()
 
 	sim := &shaderSim{
-		sprite: loadSprite("assets/boid.png"),
+		sprite: loadSprite("assets/boid-gopher.png"),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
 		},
@@ -105,26 +105,17 @@ func (s *shaderSim) Draw(screen *ebiten.Image) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const scale float64 = 25 // Need to scale up the tiny sprite
-
 func loadSprite(p string) *ebiten.Image {
 	f, err := os.Open(p)
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 	i, _, err := image.Decode(f)
 	if err != nil {
 		panic(err)
 	}
-	f.Close()
-	si := ebiten.NewImageFromImage(i)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(scale, scale)
-	w, h := si.Size()
-	sprite := ebiten.NewImage(int(float64(w)*scale), int(float64(h)*scale))
-	sprite.DrawImage(si, op)
-	return sprite
-
+	return ebiten.NewImageFromImage(i)
 }
 
 func loadShader(p string) *ebiten.Shader {
