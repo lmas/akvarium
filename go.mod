@@ -1,4 +1,4 @@
-module github.com/lmas/boids
+module github.com/lmas/akvarium
 
 go 1.18
 
