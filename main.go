@@ -21,7 +21,7 @@ import (
 var (
 	flagInit    = flag.Int("init", 2000, "Run initial updates to prime the simulation")
 	flagVerbose = flag.Bool("verbose", false, "Toggle verbose info")
-	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit")
+	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit after 30 seconds")
 )
 
 func main() {
@@ -124,8 +124,6 @@ func New(conf SimConf) (*Simulation, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	s.Log("Assets ready")
 	return s, nil
 }
 
@@ -142,7 +140,6 @@ func (s *Simulation) Init(simulationSteps int) {
 		// Must alternate between updating velocity (dirty) and position (non-dirty)
 		s.swarm.Update(i%2 == 0, t)
 	}
-	s.Log("Simulation ready")
 }
 
 func (s *Simulation) Run() error {
