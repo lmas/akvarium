@@ -18,14 +18,23 @@ import (
 	"github.com/lmas/akvarium/utils"
 )
 
+const Version string = "v0.1-alpha"
+
 var (
 	flagInit    = flag.Int("init", 2000, "Run initial updates to prime the simulation")
+	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and exit after 30 seconds")
 	flagVerbose = flag.Bool("verbose", false, "Toggle verbose info")
-	flagProfile = flag.Bool("profile", false, "Perform a CPU/MEM profile and quit after 30 seconds")
+	flagVersion = flag.Bool("version", false, "Print version and exit")
 )
 
 func main() {
 	flag.Parse()
+
+	if *flagVersion {
+		fmt.Printf("Akvarium %s\n", Version)
+		return
+	}
+
 	conf := SimConf{
 		Verbose:       *flagVerbose,
 		ScreenWidth:   1280,
