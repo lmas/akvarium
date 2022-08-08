@@ -7,8 +7,8 @@ A tiny aquarium running a [Boids] simulation.
 
 > Boids is an artificial life program,
 > developed by [Craig Reynolds] in 1986,
-> which simulates the flocking behaviour of birds.
-> - Wikipedia
+> which simulates the flocking behaviour of birds.\
+> **Wikipedia**
 
 Using only three simple rules one is able to simulate emergent flocking behaviour that is mesmerising.
 The three rules are:
@@ -19,14 +19,16 @@ The three rules are:
 - **Alignment:** And it should try to match it's velocity and direction with it's neighbours.
 - **Separation:** While moving, it should also try to avoid collisions with the closest neighbours.
 
-This results in the interesting movement of birds/fish/etc. that mimics real life pretty accurately.
+This results in the interesting movement of birds or fish for example,
+that mimics real life pretty accurately.
+[Complementary rules] and [steering behaviours] allows one to limit the movement speed,
+bounding the whole flock to a position, following routes and more.
 
 In this case, it's schools of fish.
 
-![boids clip]
+A quick demonstration:
 
-[Complementary rules] and [steering behaviours] allows one to limit the school's speed,
-bounding it's position and setting goals etc.
+![boids clip]
 
 [Boids]: https://en.wikipedia.org/wiki/Boids
 [banner]: ./assets/banner.png
@@ -70,7 +72,7 @@ And showing all other shortcut commands:
 
 ## Why?
 
-For fun. And I wanted a pretty thing to tinker with once in a while.
+For fun. And I wanted a pretty thing to tinker with *slowly over time*.
 
 ### What's the performance like?
 
@@ -95,12 +97,16 @@ ok  	github.com/lmas/akvarium/boids	6.167s
 ## Issues
 
 - FPS seems to drop when the main window loses focus.
+- Can't easily show video clips on Github, so without ext. hosting we're limited to giant GIFs.
 
 ## Roadmap
+
+In rough order of importance.
 
 ### Phase One
 
 - Public release and feedback.
+- Finish documentation and add the last tests.
 
 ### Phase Two
 
@@ -111,15 +117,16 @@ ok  	github.com/lmas/akvarium/boids	6.167s
 ### Phase Three
 
 - Add camera controls (zoom and pan), so the aquarium can increase in volume.
-- Add animation; all entities should render a couple of frames.
 - Add more entities; floating jellyfish, shrimp, feeding anemones, swaying kelp stalks.
 - Replace the school of clownfish; herring seems more appropriate?
+- Add animation; all entities should render a couple of frames.
 - Add shader to simulate shimmering fish scales.
 
 ### Phase Four
 
+- Add passage of time and a colour/light glow shader.
 - Investigate randomly generating environment[^2], such as corals and rocks.
-- Add underwater sounds.
+- Add underwater sounds?
 - Add some form of user interaction (and saving state); feeding fish?
 
 ## License
