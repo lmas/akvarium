@@ -23,7 +23,7 @@ This results in the interesting movement of birds/fish/etc. that mimics real lif
 
 In this case, it's schools of fish.
 
-![clip]
+![boids clip]
 
 [Complementary rules] and [steering behaviours] allows one to limit the school's speed,
 bounding it's position and setting goals etc.
@@ -32,7 +32,7 @@ bounding it's position and setting goals etc.
 [banner]: ./assets/banner.png
 [Craig Reynolds]: https://www.red3d.com/cwr/boids/
 [rules]: ./assets/rules.png
-[clip]: ./assets/clip.mp4
+[boids clip]: ./assets/boids.gif
 [Complementary rules]: https://vergenet.net/~conrad/boids/pseudocode.html
 [steering behaviours]: https://gamedevelopment.tutsplus.com/series/understanding-steering-behaviors--gamedev-12732
 
