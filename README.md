@@ -13,7 +13,7 @@ A tiny aquarium running a [Boids] simulation.
 Using only three simple rules one is able to simulate emergent flocking behaviour that is mesmerising.
 The three rules are:
 
-(pic of rules)
+![rules]
 
 - **Cohesion:** A single Boid tries to move towards the center of a nearby group of other Boids.
 - **Alignment:** And it should try to match it's velocity and direction with it's neighbours.
@@ -23,14 +23,16 @@ This results in the interesting movement of birds/fish/etc. that mimics real lif
 
 In this case, it's schools of fish.
 
-(gif of simulation)
+![clip]
 
 [Complementary rules] and [steering behaviours] allows one to limit the school's speed,
 bounding it's position and setting goals etc.
 
 [Boids]: https://en.wikipedia.org/wiki/Boids
-[banner]: ./assets/banner.svg
+[banner]: ./assets/banner.png
 [Craig Reynolds]: https://www.red3d.com/cwr/boids/
+[rules]: ./assets/rules.png
+[clip]: ./assets/clip.mp4
 [Complementary rules]: https://vergenet.net/~conrad/boids/pseudocode.html
 [steering behaviours]: https://gamedevelopment.tutsplus.com/series/understanding-steering-behaviors--gamedev-12732
 
@@ -116,7 +118,7 @@ ok  	github.com/lmas/akvarium/boids	6.167s
 
 ### Phase Four
 
-- Investigate randomly generating environment, such as corals and rocks[^2].
+- Investigate randomly generating environment[^2], such as corals and rocks.
 - Add underwater sounds.
 - Add some form of user interaction (and saving state); feeding fish?
 
