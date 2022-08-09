@@ -10,7 +10,7 @@ A tiny aquarium running a [Boids] simulation.
 > which simulates the flocking behaviour of birds.\
 > **Wikipedia**
 
-Using only three simple rules one is able to simulate emergent flocking behaviour that is mesmerising.
+Using only three simple rules one is able to simulate emergent flocking behaviour.
 The three rules are:
 
 ![rules]
@@ -19,14 +19,9 @@ The three rules are:
 - **Alignment:** And it should try to match it's velocity and direction with it's neighbours.
 - **Separation:** While moving, it should also try to avoid collisions with the closest neighbours.
 
-This results in the interesting movement of birds or fish for example,
-that mimics real life pretty accurately.
-[Complementary rules] and [steering behaviours] allows one to limit the movement speed,
-bounding the whole flock to a position, following routes and more.
-
-In this case, it's schools of fish.
-
-A quick demonstration:
+This results in a group movement that resembles flocks of birds or schools of fish,
+mimicking real life pretty convincingly.
+A quick demonstration with clown fish:
 
 ![boids clip]
 
@@ -35,8 +30,6 @@ A quick demonstration:
 [Craig Reynolds]: https://www.red3d.com/cwr/boids/
 [rules]: ./assets/rules.png
 [boids clip]: ./assets/boids.gif
-[Complementary rules]: https://vergenet.net/~conrad/boids/pseudocode.html
-[steering behaviours]: https://gamedevelopment.tutsplus.com/series/understanding-steering-behaviors--gamedev-12732
 
 
 
@@ -72,7 +65,7 @@ And showing all other shortcut commands:
 
 ## Why?
 
-For fun. And I wanted a pretty thing to tinker with *slowly over time*.
+For fun. And I wanted a pretty recreational project to tinker with *slowly over time*.
 
 ### What's the performance like?
 
@@ -93,11 +86,14 @@ PASS
 ok  	github.com/lmas/akvarium/boids	6.167s
 ```
 
+It's not that great, so I'm open to suggestions.
 
 ## Issues
 
 - FPS seems to drop when the main window loses focus.
 - Can't easily show video clips on Github, so without ext. hosting we're limited to giant GIFs.
+
+
 
 ## Roadmap
 
@@ -107,6 +103,7 @@ In rough order of importance.
 
 - Public release and feedback.
 - Finish documentation and add the last tests.
+- ASCII banner for the CLI.
 
 ### Phase Two
 
@@ -128,10 +125,20 @@ In rough order of importance.
 - Investigate randomly generating environment[^2], such as corals and rocks.
 - Add underwater sounds?
 - Add some form of user interaction (and saving state); feeding fish?
+- Render the simulation in ASCII for terminals?
+- Replace the geospatial index with something else?
+
+## Phase Five
+
+- Release v1.0.
+
+
 
 ## License
 
 GPL, See the [LICENSE] file for details.
+
+
 
 [just]: https://github.com/casey/just
 [ce5397c]: https://github.com/lmas/akvarium/commit/ce5397cee27cf6f4698a6bcff17b314aaca788b5
