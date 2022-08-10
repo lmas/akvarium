@@ -9,13 +9,13 @@ type IndexKey [2]int
 // IndexBin contains IDs for Boids in the same bin.
 type IndexBin []int
 
+type indexMap map[IndexKey]IndexBin
+
 // Index groups Boids into neighbouring bins.
 type Index struct {
 	idx    indexMap
 	offset float64
 }
-
-type indexMap map[IndexKey]IndexBin
 
 func NewIndex(offset int) *Index {
 	return &Index{

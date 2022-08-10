@@ -18,7 +18,19 @@ import (
 	"github.com/lmas/akvarium/utils"
 )
 
-const Version string = "v0.1-alpha"
+const Version string = "v0.1.0"
+const Banner string = `
+                               #xo;:::x
+                  #$xxxxx$##x;;::::::::o$$#
+                $;::::::::    o:::::::::::::,;$
+               #:::::::::o     o;;xxx;:::;;   ,:o$
+ $:o$xxooxoxx$xx::::::::::.     o#o;:;:::,   x;$o::x
+ ,o#::::::,    o::::::::::;,   ,$::::::::,  .:::::::o
+ :;#:::::::    ::::::::::::,   .$::::::::x  ,::::::;$
+ $.$o:::::: ,:;x:::::::::::    ooxo::::::::  :o;;o$
+  $;o$ooxx#     o::::::::;$.,::$o;;::::::::;;o$
+                #xo;;:;ox#      #::::::x#    Akvarium
+                                #;;;oo#      `
 
 var (
 	flagInit    = flag.Int("init", 2000, "Run initial updates to prime the simulation")
@@ -31,7 +43,8 @@ func main() {
 	flag.Parse()
 
 	if *flagVersion {
-		fmt.Printf("Akvarium %s\n", Version)
+		fmt.Printf(Banner)
+		fmt.Println(Version)
 		return
 	}
 

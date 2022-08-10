@@ -40,7 +40,7 @@ func main() {
 	flag.Parse()
 
 	sim := &shaderSim{
-		sprite: loadSprite("assets/boid-gopher.png"),
+		sprite: loadSprite("assets/banner.png"),
 		op: &ebiten.DrawImageOptions{
 			Filter: ebiten.FilterLinear,
 		},
