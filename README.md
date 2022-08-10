@@ -65,7 +65,7 @@ And showing all other shortcut commands:
 
 ## Why?
 
-For fun. And I wanted a pretty recreational project to tinker with *slowly over time*.
+For fun. And I wanted a pretty recreational project to tinker with slowly over time.
 
 ### What's the performance like?
 
@@ -76,7 +76,7 @@ Running the benchmark (using 1000 Boids and 10 workers on commit [ce5397c]) I ge
 
 ```
 # just benchtest=Boids bench boids
-go test -bench "Boids" -benchtime 5s -benchmem -cpuprofile ".stats/cpu" -memprofile ".stats/mem" "./boids"
+go test -bench "Boids" -benchtime 5s -benchmem ...
 goos: freebsd
 goarch: amd64
 pkg: github.com/lmas/akvarium/boids
@@ -88,7 +88,7 @@ ok  	github.com/lmas/akvarium/boids	6.167s
 
 It's not that great, so I'm open to suggestions.
 
-## Issues
+### Any issues?
 
 - FPS seems to drop when the main window loses focus.
 - Can't easily show video clips on Github, so without ext. hosting we're limited to giant GIFs.
@@ -103,7 +103,6 @@ In rough order of importance.
 
 - Public release and feedback.
 - Finish documentation and add the last tests.
-- ASCII banner for the CLI.
 
 ### Phase Two
 
@@ -128,7 +127,7 @@ In rough order of importance.
 - Render the simulation in ASCII for terminals?
 - Replace the geospatial index with something else?
 
-## Phase Five
+### Phase Five
 
 - Release v1.0.
 
