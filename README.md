@@ -63,7 +63,7 @@ And showing all other shortcut commands:
 
 ## FAQ
 
-## Why?
+### Why?
 
 For fun. And I wanted a pretty recreational project to tinker with slowly over time.
 
@@ -113,7 +113,7 @@ In rough order of importance.
 ### Phase Three
 
 - Add camera controls (zoom and pan), so the aquarium can increase in volume.
-- Add more entities; floating jellyfish, shrimp, feeding anemones, swaying kelp stalks.
+- Add more entities; floating [jellyfish], shrimp, feeding anemones, swaying kelp stalks.
 - Replace the school of clownfish; herring seems more appropriate?
 - Add animation; all entities should render a couple of frames.
 - Add shader to simulate shimmering fish scales.
@@ -141,6 +141,7 @@ GPL, See the [LICENSE] file for details.
 
 [just]: https://github.com/casey/just
 [ce5397c]: https://github.com/lmas/akvarium/commit/ce5397cee27cf6f4698a6bcff17b314aaca788b5
+[jellyfish]: https://en.wikipedia.org/wiki/Turritopsis_dohrnii
 [LICENSE]: LICENSE
 [Lucas Milner]: https://www.lucasmilner.com/growing-virtual-coral
 [space colonization]: http://marcinignac.com/experiments/space-colonization/
