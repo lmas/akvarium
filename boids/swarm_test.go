@@ -6,7 +6,7 @@ import (
 
 func BenchmarkBoids(b *testing.B) {
 	s := New(Conf{
-		Boids: 1000,
+		Boids: 500,
 		Spawn: [2]Vector{
 			NewVector(0, 0),
 			NewVector(100, 100),
