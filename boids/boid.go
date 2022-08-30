@@ -30,72 +30,51 @@ func (s *Swarm) updateBoid(b *Boid, dirty bool, target Vector) {
 		num += 1
 		coh = coh.Addv(n.Pos)
 		ali = ali.Addv(n.Vel)
-		sep = sep.Subv(separation(b, n))
+		sep = sep.Subv(s.separation(b, n))
 	})
 
 	if num > 0 {
-		coh = cohesion(b, coh, num)
-		ali = alignment(b, ali, num)
+		coh = s.cohesion(b, coh, num)
+		ali = s.alignment(b, ali, num)
 	}
-	tar := centerTarget(b, target)
+	tar := s.centerTarget(b, target)
 	b.Vel = b.Vel.Addv(coh).Addv(ali).Addv(sep).Addv(tar)
-	b.Vel = clampSpeed(b)
+	b.Vel = s.clampSpeed(b)
 }
 
-const cohesionFactor float64 = 0.001
-
-func cohesion(b *Boid, coh Vector, num float64) Vector {
-	return coh.Div(num).Subv(b.Pos).Mul(cohesionFactor)
+func (s *Swarm) cohesion(b *Boid, coh Vector, num float64) Vector {
+	return coh.Div(num).Subv(b.Pos).Mul(s.Conf.CohesionFactor)
 }
 
-const alignmentFactor float64 = 0.05
-
-func alignment(b *Boid, ali Vector, num float64) Vector {
-	return ali.Div(num).Subv(b.Vel).Mul(alignmentFactor)
+func (s *Swarm) alignment(b *Boid, ali Vector, num float64) Vector {
+	return ali.Div(num).Subv(b.Vel).Mul(s.Conf.AlignmentFactor)
 }
 
-const separationRange float64 = 20
-const separationFactor = 0.3
-
-const tsep float64 = separationRange * separationRange
-
-func separation(b, n *Boid) Vector {
+func (s *Swarm) separation(b, n *Boid) Vector {
 	diff := n.Pos.Subv(b.Pos)
-	dist := diff.InRange(tsep)
+	dist := diff.InRange(s.squareSeparationRange)
 	if dist > 0 {
-		return diff.Div(dist / separationFactor)
+		return diff.Div(dist / s.Conf.SeparationFactor)
 	}
 	return NewVector(0, 0)
 }
 
-const targetRange float64 = 50
-const targetRepelFactor float64 = 0.3
-const targetAttractFactor float64 = 0.00004
-
-const ttar float64 = targetRange * targetRange
-
-func centerTarget(b *Boid, target Vector) Vector {
+func (s *Swarm) centerTarget(b *Boid, target Vector) Vector {
 	diff := target.Subv(b.Pos)
-	dist := diff.InRange(ttar)
+	dist := diff.InRange(s.squareTargetRange)
 	if dist > 0 {
-		return diff.Div(dist / -targetRepelFactor)
+		return diff.Div(dist / -s.Conf.TargetRepelFactor)
 	}
-	return diff.Mul(targetAttractFactor)
+	return diff.Mul(s.Conf.TargetAttractFactor)
 }
 
-const velMax float64 = 1
-const velMin float64 = 0.5
-
-const tvmax float64 = velMax * velMax
-const tvmin float64 = velMin * velMin
-
-func clampSpeed(b *Boid) Vector {
+func (s *Swarm) clampSpeed(b *Boid) Vector {
 	l := b.Vel.Dot(b.Vel)
 	switch {
-	case l > tvmax:
-		return b.Vel.Mul(velMax / math.Sqrt(l))
-	case l < tvmin:
-		return b.Vel.Mul(velMin / math.Sqrt(l))
+	case l > s.squareVelocityMax:
+		return b.Vel.Mul(s.Conf.VelocityMax / math.Sqrt(l))
+	case l < s.squareVelocityMin:
+		return b.Vel.Mul(s.Conf.VelocityMin / math.Sqrt(l))
 	}
 	return b.Vel
 }

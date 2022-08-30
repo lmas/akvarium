@@ -54,10 +54,19 @@ func main() {
 		ScreenHeight:  720,
 		UpdatesPerSec: 10,
 		Swarm: boids.Conf{
-			Boids:       500,
-			Seed:        0,
-			Workers:     10,
-			IndexOffset: 50,
+			Seed:                0,
+			Boids:               500,
+			Workers:             10,
+			IndexOffset:         50,
+			CohesionFactor:      0.001,
+			AlignmentFactor:     0.05,
+			SeparationRange:     20,
+			SeparationFactor:    0.3,
+			TargetRange:         50,
+			TargetRepelFactor:   0.3,
+			TargetAttractFactor: 0.00004,
+			VelocityMax:         1,
+			VelocityMin:         0.5,
 		},
 	}
 

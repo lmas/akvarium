@@ -6,11 +6,22 @@ import (
 )
 
 type Conf struct {
-	Boids       int
-	Spawn       [2]Vector
-	Seed        int64
-	Workers     int
-	IndexOffset int
+	Spawn       [2]Vector // Bounding box of min/max vector where boids spawn.
+	Seed        int64     // Randomisation seed.
+	Boids       int       // Number of boids to spawn.
+	Workers     int       // Number of goroutines that runs boid calculations.
+	IndexOffset int       // Size (in pixels) of each "cell" in the spatial index used to group boids.
+
+	// Variables used for boid movement calculation.
+	CohesionFactor      float64
+	AlignmentFactor     float64
+	SeparationRange     float64
+	SeparationFactor    float64
+	TargetRange         float64
+	TargetRepelFactor   float64
+	TargetAttractFactor float64
+	VelocityMax         float64
+	VelocityMin         float64
 }
 
 // Swarm is a group of Boids.
@@ -20,8 +31,12 @@ type Swarm struct {
 	Boids []*Boid
 	Index *Index
 
-	signal chan workerSignal
-	wg     sync.WaitGroup
+	signal                chan workerSignal
+	wg                    sync.WaitGroup
+	squareSeparationRange float64
+	squareTargetRange     float64
+	squareVelocityMax     float64
+	squareVelocityMin     float64
 }
 
 // New creates a new swarm of Boids, using Conf.
@@ -29,10 +44,14 @@ type Swarm struct {
 // workers to perform the actual Boid movement updates.
 func New(conf Conf) *Swarm {
 	s := &Swarm{
-		Conf:   conf,
-		Boids:  make([]*Boid, conf.Boids),
-		Index:  NewIndex(conf.IndexOffset),
-		signal: make(chan workerSignal, conf.Workers),
+		Conf:                  conf,
+		Boids:                 make([]*Boid, conf.Boids),
+		Index:                 NewIndex(conf.IndexOffset),
+		signal:                make(chan workerSignal, conf.Workers),
+		squareSeparationRange: conf.SeparationRange * conf.SeparationRange,
+		squareTargetRange:     conf.TargetRange * conf.TargetRange,
+		squareVelocityMax:     conf.VelocityMax * conf.VelocityMax,
+		squareVelocityMin:     conf.VelocityMin * conf.VelocityMin,
 	}
 
 	min, max := conf.Spawn[0], conf.Spawn[1]
