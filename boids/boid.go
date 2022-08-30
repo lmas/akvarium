@@ -1,5 +1,7 @@
 package boids
 
+import "math"
+
 // Boid represents a single boid.
 // It will try to fit in with a Swarm by:
 // - moving towards the center of nearby Boids (Cohesion).
@@ -55,10 +57,12 @@ func alignment(b *Boid, ali Vector, num float64) Vector {
 const separationRange float64 = 20
 const separationFactor = 0.3
 
+const tsep float64 = separationRange * separationRange
+
 func separation(b, n *Boid) Vector {
 	diff := n.Pos.Subv(b.Pos)
-	dist := diff.Length()
-	if dist < separationRange {
+	dist := diff.InRange(tsep)
+	if dist > 0 {
 		return diff.Div(dist / separationFactor)
 	}
 	return NewVector(0, 0)
@@ -68,10 +72,12 @@ const targetRange float64 = 50
 const targetRepelFactor float64 = 0.3
 const targetAttractFactor float64 = 0.00004
 
+const ttar float64 = targetRange * targetRange
+
 func centerTarget(b *Boid, target Vector) Vector {
 	diff := target.Subv(b.Pos)
-	dist := diff.Length()
-	if dist < targetRange {
+	dist := diff.InRange(ttar)
+	if dist > 0 {
 		return diff.Div(dist / -targetRepelFactor)
 	}
 	return diff.Mul(targetAttractFactor)
@@ -80,13 +86,16 @@ func centerTarget(b *Boid, target Vector) Vector {
 const velMax float64 = 1
 const velMin float64 = 0.5
 
+const tvmax float64 = velMax * velMax
+const tvmin float64 = velMin * velMin
+
 func clampSpeed(b *Boid) Vector {
-	l := b.Vel.Length()
+	l := b.Vel.Dot(b.Vel)
 	switch {
-	case l > velMax:
-		return b.Vel.Mul(velMax / l)
-	case l < velMin:
-		return b.Vel.Mul(velMin / l)
+	case l > tvmax:
+		return b.Vel.Mul(velMax / math.Sqrt(l))
+	case l < tvmin:
+		return b.Vel.Mul(velMin / math.Sqrt(l))
 	}
 	return b.Vel
 }

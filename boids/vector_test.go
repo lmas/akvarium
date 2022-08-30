@@ -38,6 +38,20 @@ func TestSimpleOperations(t *testing.T) {
 			t.Errorf("got vector length %f, expected %f", f, e)
 		}
 	})
+	t.Run("in range", func(t *testing.T) {
+		assertVector(t, piv, pi, pi)
+		// vector length of pi = sqrt(pi*pi + pi*pi) ~= 4.442882938158366
+		d := piv.InRange(4.3 * 4.3)
+		if d != 0 {
+			t.Errorf("got vector range '%v', exected '0' (out of range)", d)
+		}
+		// riskyyy float comparison using rounding, but not sure how else to test precision
+		d = roundFloat(piv.InRange(4.5 * 4.5))
+		e := 4.442883
+		if d != e {
+			t.Errorf("got vector range '%v', expected '%v'", d, e)
+		}
+	})
 	t.Run("within", func(t *testing.T) {
 		min := NewVector(0, 0)
 		assertVector(t, min, 0, 0)
@@ -104,6 +118,7 @@ func BenchmarkVectors(b *testing.B) {
 		test = test.Divv(piv)
 		test = test.Subv(piv)
 
+		test.Length()
 		test.Round()
 	}
 }
