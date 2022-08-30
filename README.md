@@ -101,14 +101,17 @@ In rough order of importance.
 
 ### Phase One
 
-- Public release and feedback.
-- Finish documentation and add the last tests.
+- ~Public release and feedback.~
+- Finalise refactors and experiments as suggested by feedback (#1 and #2).
+- Finish documentation and add any last tests.
+- Tag v0.1
 
 ### Phase Two
 
 - Add simple entities, moving in the distant background; couple of whales, a giant sunfish.
 - Add static environment for back- and foreground; prerendered corals, rocks and cliffs[^1].
 - Add shader to simulate some kind of distance blur/dim for background objects.
+- Tag v0.2
 
 ### Phase Three
 
@@ -117,6 +120,7 @@ In rough order of importance.
 - Replace the school of clownfish; herring seems more appropriate?
 - Add animation; all entities should render a couple of frames.
 - Add shader to simulate shimmering fish scales.
+- Tag v0.3
 
 ### Phase Four
 
@@ -126,6 +130,7 @@ In rough order of importance.
 - Add some form of user interaction (and saving state); feeding fish?
 - Render the simulation in ASCII for terminals?
 - Replace the geospatial index with something else?
+- Tag v0.4
 
 ### Phase Five
 
